@@ -62,32 +62,32 @@ public class DefaultSubscriptionFeature implements SubscriptionFeature {
 
     @Override
     public Seat getSeat() {
-        return new Seat(2L);
+        return new Seat(1000000L);
     }
 
     @Override
     public CapacitySize getCapacitySize() {
-        return new CapacitySize(1024 * 1024 * 1024L);
+        return new CapacitySize(1024L * 1024L * 1024L * 1024L);
     }
 
     @Override
     public FileNodeNums getFileNodeNums() {
-        return new FileNodeNums(5L);
+        return new FileNodeNums(1000000L);
     }
 
     @Override
     public RowsPerSheet getRowsPerSheet() {
-        return new RowsPerSheet(100L);
+        return new RowsPerSheet(1000000L);
     }
 
     @Override
     public ArchivedRowsPerSheet getArchivedRowsPerSheet() {
-        return new ArchivedRowsPerSheet(250L);
+        return new ArchivedRowsPerSheet(1000000L);
     }
 
     @Override
     public TotalRows getTotalRows() {
-        return new TotalRows(250L);
+        return new TotalRows(10000000L);
     }
 
     @Override
@@ -143,7 +143,7 @@ public class DefaultSubscriptionFeature implements SubscriptionFeature {
 
     @Override
     public ApiQpsNums getApiQpsNums() {
-        return new ApiQpsNums(5L);
+        return new ApiQpsNums(10000L);
     }
 
     @Override

@@ -65,6 +65,7 @@ services:
     environment:
       - HOME=/tmp
       - ENABLE_SOCKET=true
+      - LIMIT_POINTS=${LIMIT_POINTS:-10000}
     networks:
       - apitable
     command: sh -c "pnpm install && pnpm run build:pre && pnpm run start:room-server"

@@ -19,13 +19,16 @@
 import { composeWithDevTools } from '@redux-devtools/extension';
 import { applyMiddleware, createStore as _createStore } from 'redux';
 import { enableBatching } from 'redux-batched-actions';
-import thunkMiddleware from 'redux-thunk';
+import thunkMiddlewareImport from 'redux-thunk';
 import { IReduxState, Reducers } from '@apitable/core';
 import { viewDerivationMiddleware } from './view_derivation_middleware';
 import { widgetSyncDataMiddleware } from './widget_sync_data_middleware';
 
 declare const window: any;
 const composeEnhancers = composeWithDevTools({ trace: true });
+const thunkMiddleware = typeof thunkMiddlewareImport === 'function'
+  ? thunkMiddlewareImport
+  : (thunkMiddlewareImport as unknown as { default: typeof thunkMiddlewareImport }).default;
 
 export const createStore = () => {
   return _createStore<IReduxState, any, unknown, unknown>(

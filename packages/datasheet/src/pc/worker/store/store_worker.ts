@@ -20,9 +20,13 @@ import { expose } from 'comlink';
 import dayjs from 'dayjs';
 import { applyMiddleware, createStore } from 'redux';
 import { enableBatching } from 'redux-batched-actions';
-import thunkMiddleware from 'redux-thunk';
+import thunkMiddlewareImport from 'redux-thunk';
 import { IReduxState, Reducers } from '@apitable/core';
 import { withCompute } from './with_compute';
+
+const thunkMiddleware = typeof thunkMiddlewareImport === 'function'
+  ? thunkMiddlewareImport
+  : (thunkMiddlewareImport as unknown as { default: typeof thunkMiddlewareImport }).default;
 
 (() => {
   if (!process.env.SSR) {

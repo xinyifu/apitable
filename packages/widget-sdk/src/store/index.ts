@@ -19,7 +19,7 @@
 import { IReduxState, Reducers } from 'core';
 import { AnyAction, applyMiddleware, CombinedState, compose, createStore, Store } from 'redux';
 import { enableBatching } from 'redux-batched-actions';
-import thunkMiddleware from 'redux-thunk';
+import thunkMiddlewareImport from 'redux-thunk';
 import { IGlobalContext, IWidgetState } from 'interface';
 import { ResourceService } from '../resource/service';
 import { subscribeDatasheetMap, subscribeWidgetMap } from '../subscribe';
@@ -31,6 +31,10 @@ export * from './constant';
 export * from './slice/root';
 
 export type IWidgetStore = Store<CombinedState<IWidgetState>, AnyAction>;
+
+const thunkMiddleware = typeof thunkMiddlewareImport === 'function'
+  ? thunkMiddlewareImport
+  : (thunkMiddlewareImport as unknown as { default: typeof thunkMiddlewareImport }).default;
 
 export const createGlobalStore = () => createStore<IReduxState, any, unknown, unknown>(
   enableBatching(Reducers.rootReducers),
