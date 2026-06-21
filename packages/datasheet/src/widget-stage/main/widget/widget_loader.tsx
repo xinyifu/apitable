@@ -18,7 +18,7 @@
 
 import React, { useEffect } from 'react';
 import { colors, LinkButton, Loading } from '@apitable/components';
-import { Strings, t, WidgetPackageStatus } from '@apitable/core';
+import { integrateCdnHost, Strings, t, WidgetPackageStatus } from '@apitable/core';
 import { WarnCircleFilled, QuestionCircleOutlined } from '@apitable/icons';
 import {
   ErrorBoundary,
@@ -44,6 +44,45 @@ interface IErrorWidget {
 
 const _ErrorBoundary: any = ErrorBoundary;
 
+const joinUrlPath = (...paths: string[]) => paths.map((path, index) => {
+  if (index === 0) {
+    return path.replace(/\/$/, '');
+  }
+  return path.replace(/^\/|\/$/g, '');
+}).join('/');
+
+const getLocalSelfHostReleaseBundleUrl = (releaseCodeBundle: string) => {
+  if (typeof window !== 'object' || process.env.NODE_ENV !== 'development') {
+    return;
+  }
+  const env = getEnvVariables();
+  const qny1 = env.QNY1;
+  if (!env.IS_SELFHOST || !qny1 || qny1.includes('http') || !['127.0.0.1', 'localhost'].includes(window.location.hostname)) {
+    return;
+  }
+  const assetsUrl = new URL(window.location.origin);
+  assetsUrl.port = '9000';
+  return joinUrlPath(assetsUrl.origin, qny1, releaseCodeBundle);
+};
+
+const getReleaseBundleUrl = (releaseCodeBundle?: string) => {
+  if (!releaseCodeBundle || releaseCodeBundle.startsWith('http')) {
+    return releaseCodeBundle;
+  }
+  const localSelfHostUrl = getLocalSelfHostReleaseBundleUrl(releaseCodeBundle);
+  if (localSelfHostUrl) {
+    return localSelfHostUrl;
+  }
+  return integrateCdnHost(releaseCodeBundle);
+};
+
+const getLoadErrorCode = (error?: WidgetLoadError) => {
+  if (!error) {
+    return;
+  }
+  return WidgetLoadError[error] || error;
+};
+
 const ErrorWidget = ({ title = t(Strings.widget_load_error_title), content, actionText, action }: IErrorWidget) => (
   <div className={styles.errorWidgetWrap}>
     <div className={styles.title}>
@@ -68,7 +107,7 @@ export const WidgetLoader: React.FC<
   const { expandDevConfig, isDevMode } = props;
   const { id, datasheetId, widgetPackageId, releaseCodeBundle, status, widgetId, authorName, widgetPackageName } = useMeta();
   const [codeUrl] = useCloudStorage<string | undefined>(`widget_loader_code_url_${widgetPackageId}`);
-  const loadUrl = isDevMode ? codeUrl : releaseCodeBundle;
+  const loadUrl = isDevMode ? codeUrl : getReleaseBundleUrl(releaseCodeBundle);
   const [WidgetComponent, refresh, loading, error] = useWidgetComponent(loadUrl, widgetPackageId);
 
   useEffect(() => {
@@ -153,6 +192,7 @@ export const WidgetLoader: React.FC<
           <div>
             <p>widgetPackageName: {widgetPackageName}</p>
             <p>widgetPackageId: {widgetPackageId}</p>
+            <p>Error: {getLoadErrorCode(error)}</p>
             <p>{t(Strings.widget_load_error_published, { authorName })}</p>
           </div>
         }

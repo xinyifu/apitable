@@ -39,7 +39,7 @@ export const enableHocuspocus = Object.is(process.env.ENABLE_HOCUSPOCUS, 'true')
 export const PROJECT_DIR = __dirname;
 
 // default language
-export const defaultLanguage = process.env.DEFAULT_LANGUAGE || 'en-US';
+export const defaultLanguage = process.env.DEFAULT_LANGUAGE || 'zh-CN';
 
 export const supportedLanguages = process.env.SUPPORTED_LANGUAGES ? process.env.SUPPORTED_LANGUAGES.split(',') : ['zh-CN', 'en-US'];
 export const skipUsageVerification = Object.is(process.env.SKIP_USAGE_VERIFICATION, 'true');

@@ -47,6 +47,8 @@ import { UnitList } from './unit_list';
 import { SubscribeUsageTipType, triggerUsageAlert } from 'enterprise/billing/trigger_usage_alert';
 import styles from './style.module.less';
 
+const getRequestErrorMessage = (error: any) => error?.response?.data?.message || error?.message || 'Request failed';
+
 export interface IPermissionSettingProps {
   data: INodePermissionData;
 }
@@ -98,7 +100,7 @@ export const Permission: FC<React.PropsWithChildren<IPermissionSettingProps>> = 
   }, [roleMap]);
 
   useEffect(() => {
-    getCollaboratorReq(pageNo);
+    getCollaboratorReq(pageNo).catch((error: any) => Message.error({ content: getRequestErrorMessage(error) }));
   }, [pageNo, getCollaboratorReq]);
 
   useEffect(() => {
@@ -122,20 +124,31 @@ export const Permission: FC<React.PropsWithChildren<IPermissionSettingProps>> = 
       return true;
     }
 
-    const result = triggerUsageAlert('nodePermissionNums', { usage: spaceInfo!.nodeRoleNums + 1, alwaysAlert: true }, SubscribeUsageTipType.Alert);
-    if (result) {
+    try {
+      if (spaceInfo) {
+        const result = triggerUsageAlert?.(
+          'nodePermissionNums',
+          { usage: spaceInfo.nodeRoleNums + 1, alwaysAlert: true },
+          SubscribeUsageTipType?.Alert,
+        );
+        if (result) {
+          return false;
+        }
+      }
+      const res = await Api.disableRoleExtend(data.nodeId, true);
+      const { success, message } = res.data;
+      if (!success) {
+        Message.error({ content: message });
+        return false;
+      }
+      setIsAppointMode(true);
+      dispatch(StoreActions.updateTreeNodesMap(data.nodeId, { nodePermitSet: true }));
+      dispatch(StoreActions.getSpaceInfo(spaceId, true));
+      return success;
+    } catch (error: any) {
+      Message.error({ content: getRequestErrorMessage(error) });
       return false;
     }
-    const res = await Api.disableRoleExtend(data.nodeId, true);
-    const { success, message } = res.data;
-    if (!success) {
-      Message.error({ content: message });
-      return false;
-    }
-    setIsAppointMode(true);
-    dispatch(StoreActions.updateTreeNodesMap(data.nodeId, { nodePermitSet: true }));
-    dispatch(StoreActions.getSpaceInfo(spaceId, true));
-    return success;
   };
 
   // Select member submission events
@@ -153,27 +166,33 @@ export const Permission: FC<React.PropsWithChildren<IPermissionSettingProps>> = 
     if (!res) {
       return;
     }
-    groupIds.length > 0 && Api.yachAddRole({ nodeId: data.nodeId, unitIds: groupIds, role: permission.value + '' }).then(async (res) => {
-      const { success, message } = res.data;
-      if (success) {
-        Message.success({ content: t(Strings.permission_add_success) });
-        await getNodeRoleMap();
-        scrollBottom();
-      } else {
-        Message.error({ content: message });
+    try {
+      if (groupIds.length > 0) {
+        const res = await Api.yachAddRole({ nodeId: data.nodeId, unitIds: groupIds, role: permission.value + '' });
+        const { success, message } = res.data;
+        if (success) {
+          Message.success({ content: t(Strings.permission_add_success) });
+          await getNodeRoleMap();
+          scrollBottom();
+        } else {
+          Message.error({ content: message });
+        }
       }
-    });
 
-    unitIdsNoGroup.length > 0 && Api.addRole(data.nodeId, unitIdsNoGroup, permission.value + '').then(async (res) => {
-      const { success, message } = res.data;
-      if (success) {
-        Message.success({ content: t(Strings.permission_add_success) });
-        await getNodeRoleMap();
-        scrollBottom();
-      } else {
-        Message.error({ content: message });
+      if (unitIdsNoGroup.length > 0) {
+        const res = await Api.addRole(data.nodeId, unitIdsNoGroup, permission.value + '');
+        const { success, message } = res.data;
+        if (success) {
+          Message.success({ content: t(Strings.permission_add_success) });
+          await getNodeRoleMap();
+          scrollBottom();
+        } else {
+          Message.error({ content: message });
+        }
       }
-    });
+    } catch (error: any) {
+      Message.error({ content: getRequestErrorMessage(error) });
+    }
   };
 
   const deleteUnit = (unitId: string) => {
@@ -191,7 +210,7 @@ export const Permission: FC<React.PropsWithChildren<IPermissionSettingProps>> = 
           return;
         }
         Message.error({ content: t(Strings.permission_delete_failed) });
-      });
+      }).catch((error: any) => Message.error({ content: getRequestErrorMessage(error) }));
     };
 
     Modal.confirm({
@@ -214,7 +233,7 @@ export const Permission: FC<React.PropsWithChildren<IPermissionSettingProps>> = 
       } else {
         Message.error({ content: t(Strings.permission_switch_failed) });
       }
-    });
+    }).catch((error: any) => Message.error({ content: getRequestErrorMessage(error) }));
   };
 
   const batchChangeUnitRole = async (role: string) => {
@@ -234,7 +253,7 @@ export const Permission: FC<React.PropsWithChildren<IPermissionSettingProps>> = 
       } else {
         Message.error({ content: t(Strings.permission_switch_failed) });
       }
-    });
+    }).catch((error: any) => Message.error({ content: getRequestErrorMessage(error) }));
   };
 
   const resetPermission = () => {
@@ -250,7 +269,7 @@ export const Permission: FC<React.PropsWithChildren<IPermissionSettingProps>> = 
       }
 
       Message.success({ content: t(Strings.permission_switch_failed) });
-    });
+    }).catch((error: any) => Message.error({ content: getRequestErrorMessage(error) }));
   };
 
   const batchDeleteRole = async () => {
@@ -270,7 +289,7 @@ export const Permission: FC<React.PropsWithChildren<IPermissionSettingProps>> = 
         return;
       }
       Message.error({ content: t(Strings.permission_delete_failed) });
-    });
+    }).catch((error: any) => Message.error({ content: getRequestErrorMessage(error) }));
   };
 
   if (!roleMap) {

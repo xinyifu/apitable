@@ -38,6 +38,8 @@ import { SubscribeUsageTipType, triggerUsageAlert } from 'enterprise/billing/tri
 import { isSocialPlatformEnabled } from 'enterprise/home/social_platform/utils';
 import styles from './style.module.less';
 
+const getRequestErrorMessage = (error: any) => error?.response?.data?.message || error?.message || 'Request failed';
+
 export const PermissionAndCollaborator: React.FC<IShareContentProps> = ({ data }) => {
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const socketData = useAppSelector((state) => state.catalogTree.socketData);
@@ -51,7 +53,7 @@ export const PermissionAndCollaborator: React.FC<IShareContentProps> = ({ data }
   });
 
   useEffect(() => {
-    getCollaboratorReq(pageNo);
+    getCollaboratorReq(pageNo).catch((error: any) => Message.error({ content: getRequestErrorMessage(error) }));
   }, [pageNo, getCollaboratorReq]);
 
   useEffect(() => {
@@ -92,41 +94,55 @@ export const PermissionAndCollaborator: React.FC<IShareContentProps> = ({ data }
       return;
     }
 
-    const result = triggerUsageAlert('nodePermissionNums', { usage: spaceInfo!.nodeRoleNums + 1, alwaysAlert: true }, SubscribeUsageTipType.Alert);
-    if (result) {
-      return;
-    }
-
     const unitIds = unitInfos.map((item) => item.unitId);
 
-    const res = await disableRoleExtend();
-    if (!res) {
-      return;
-    }
+    try {
+      if (spaceInfo) {
+        const result = triggerUsageAlert?.(
+          'nodePermissionNums',
+          { usage: spaceInfo.nodeRoleNums + 1, alwaysAlert: true },
+          SubscribeUsageTipType?.Alert,
+        );
+        if (result) {
+          return;
+        }
+      }
 
-    Api.addRole(data.nodeId, unitIds, permission.value + '').then(async (res) => {
-      const { success, message } = res.data;
+      const res = await disableRoleExtend();
+      if (!res) {
+        return;
+      }
+
+      const addRoleRes = await Api.addRole(data.nodeId, unitIds, permission.value + '');
+      const { success, message } = addRoleRes.data;
       if (success) {
         Message.success({ content: t(Strings.permission_add_success) });
         await getNodeRoleList();
       } else {
         Message.error({ content: message });
       }
-    });
+    } catch (error: any) {
+      Message.error({ content: getRequestErrorMessage(error) });
+    }
   };
 
   const disableRoleExtend = async () => {
     if (!roleList?.extend) {
       return true;
     }
-    const res = await Api.disableRoleExtend(data.nodeId, true);
-    const { success, message } = res.data;
-    if (!success) {
-      Message.error({ content: message });
+    try {
+      const res = await Api.disableRoleExtend(data.nodeId, true);
+      const { success, message } = res.data;
+      if (!success) {
+        Message.error({ content: message });
+        return false;
+      }
+      dispatch(StoreActions.updateTreeNodesMap(data.nodeId, { nodePermitSet: true }));
+      return success;
+    } catch (error: any) {
+      Message.error({ content: getRequestErrorMessage(error) });
       return false;
     }
-    dispatch(StoreActions.updateTreeNodesMap(data.nodeId, { nodePermitSet: true }));
-    return success;
   };
 
   const optionData = permissionMenuData(data.type);

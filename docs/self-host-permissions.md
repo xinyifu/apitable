@@ -607,3 +607,44 @@ groupName: codex-row-20260621102017 station
 3. 重新从 `reader` 切回 `editor`，页面显示 `操作成功`，接口 `listRole` 确认小组角色为 `editor`。
 4. 上述两次操作均未出现 `Unhandled Runtime Error`。
 5. 第二次验证没有新增控制台错误；第一次验证只出现 Ant Design Tooltip deprecated warning，和权限逻辑无关。
+
+### 2026-06-21 节点权限前端修复记录
+
+本地自部署 fork 仅针对自部署，节点/文件权限弹窗同样不能依赖 SaaS/企业版计费用量提示模块。
+
+本轮修复的前端问题：
+
+1. 添加小组/成员权限时，社区/自部署包里 `SubscribeUsageTipType` 可能不存在，直接读取 `SubscribeUsageTipType.Alert` 会触发 Runtime Error。
+2. `disableRoleExtend`、添加成员、小组授权、编辑角色、批量编辑、删除、恢复默认等请求 reject 时，原组件容易在开发环境显示未处理错误遮罩。
+3. 分享节点权限入口也存在同类订阅提示调用，需保持相同的自部署兼容处理。
+
+已修改的前端文件：
+
+```text
+packages/datasheet/src/pc/components/catalog/permission_settings_plus/permission/permission.tsx
+packages/datasheet/src/pc/components/catalog/share_node/permission_and_collaborator.tsx
+```
+
+关键处理：
+
+- 自部署下计费用量提示改为可选调用：`triggerUsageAlert?.(...)`、`SubscribeUsageTipType?.Alert`。
+- 订阅提示、`disableRoleExtend` 和后续添加权限请求放在 `try/catch` 中，异常统一转成 `Message.error`。
+- 成员列表加载、角色删除、角色切换、批量切换、恢复默认、批量删除等权限请求增加 axios reject 处理，避免 Next.js Runtime Error 遮罩。
+
+浏览器验证：
+
+```text
+URL: http://127.0.0.1:3000/workbench/dstnbR4FlXGA8ik3uZ/viwPeX6vefMPh
+nodeId: dsbYzBvckCdgfrA3q1
+nodeName: New dashboard
+unitId: 2068587148159750146
+roleCode: updater
+```
+
+验证结果：
+
+1. 前端进入 `New dashboard` 文件权限弹窗，选择通讯录小组 `组长`。
+2. 点击 `添加` 后页面不再出现 `Cannot read properties of undefined (reading 'Alert')`。
+3. 权限弹窗显示 `组长 / 只可更新`，后端 `apitable_control_role` 写入 `control_id=dsbYzBvckCdgfrA3q1`、`unit_id=2068587148159750146`、`role_code=updater`。
+4. 本次添加动作没有新增控制台 error。
+5. 验证前页面存在一个 widget-sdk `getDatasheet` 遗留错误遮罩，关闭后不影响本次节点权限添加路径。

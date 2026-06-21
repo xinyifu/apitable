@@ -1,9 +1,8 @@
 import { useMount, useUnmount } from 'ahooks';
 import React, { useEffect, useImperativeHandle, useState } from 'react';
-import { getComputeRefManager, ResourceStashManager, Selectors, StoreActions } from '@apitable/core';
+import { getComputeRefManager, getLanguage, ResourceStashManager, Selectors, StoreActions } from '@apitable/core';
 import {
   eventMessage,
-  getLanguage,
   IExpandRecordProps,
   initRootWidgetState,
   initWidgetStore,
@@ -24,6 +23,16 @@ import { patchDatasheet } from './utils';
 import { IWidgetBlockRefs } from './widget_block';
 import { WidgetLoading } from './widget_loading';
 
+declare const window: any;
+
+const syncWidgetLanguage = (locale: string) => {
+  if (process.env.SSR || typeof window !== 'object') {
+    return;
+  }
+  window.__initialization_data__ = window.__initialization_data__ || {};
+  window.__initialization_data__.lang = locale;
+};
+
 export const WidgetBlockMainBase: React.ForwardRefRenderFunction<
   IWidgetBlockRefs,
   {
@@ -41,6 +50,8 @@ export const WidgetBlockMainBase: React.ForwardRefRenderFunction<
 > = (props, ref) => {
   const { widgetId, widgetPackageId, runtimeEnv, isExpandWidget, isSettingOpened, toggleSetting, toggleFullscreen, expandRecord, isDevMode, nodeId } =
     props;
+  const locale = getLanguage();
+  syncWidgetLanguage(locale);
   const theme = useAppSelector((state) => state.theme);
   const [codeUrl, setCodeUrl] = useCloudStorage<string | undefined>(`widget_loader_code_url_${widgetPackageId}`, widgetId);
   const [widgetStore, setWidgetStore] = useState<any>();
@@ -199,7 +210,7 @@ export const WidgetBlockMainBase: React.ForwardRefRenderFunction<
   return (
     <WidgetProvider
       id={widgetId}
-      locale={getLanguage()}
+      locale={locale}
       theme={theme}
       runtimeEnv={runtimeEnv}
       widgetStore={widgetStore}
