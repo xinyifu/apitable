@@ -107,6 +107,7 @@ const LinkEditorBase: React.ForwardRefRenderFunction<IEditor, ILinkEditorProps> 
   const { screenIsAtMost } = useResponsive();
   const isMobile = screenIsAtMost(ScreenSize.md);
   const [focusIndex, setFocusIndex] = useState(-1);
+  const normalizedSearchValue = searchValue.trim();
 
   const { foreignDatasheetId, foreignDatasheetName } = useAppSelector((state) => {
     const foreignDatasheet = Selectors.getDatasheet(state, field.property.foreignDatasheetId);
@@ -171,10 +172,10 @@ const LinkEditorBase: React.ForwardRefRenderFunction<IEditor, ILinkEditorProps> 
   }, [editing, datasheetId]);
 
   useEffect(() => {
-    if (!searchValue) {
+    if (!normalizedSearchValue) {
       setFocusIndex(-1);
     }
-  }, [datasheetId, recordId, editing, searchValue]);
+  }, [datasheetId, recordId, editing, normalizedSearchValue]);
 
   if (!foreignDatasheetId && !loading) {
     return <FocusHolder ref={editorRef} />;
@@ -190,7 +191,7 @@ const LinkEditorBase: React.ForwardRefRenderFunction<IEditor, ILinkEditorProps> 
     stopPropagation(e);
 
     const rows = searchContentRef.current && searchContentRef.current.getFilteredRows();
-    if (searchValue && rows) {
+    if (normalizedSearchValue && rows) {
       const maxLength = rows.length;
       switch (e.keyCode) {
         case KeyCode.Up:
@@ -265,7 +266,7 @@ const LinkEditorBase: React.ForwardRefRenderFunction<IEditor, ILinkEditorProps> 
               ref={searchContentRef}
               field={field}
               cellValue={cellValue}
-              searchValue={searchValue}
+              searchValue={normalizedSearchValue}
               onlyShowSelected={onlyShowSelected}
               focusIndex={focusIndex}
               onChange={saveValue}
