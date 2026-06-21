@@ -1016,6 +1016,50 @@ backend-server/application/src/main/java/com/apitable/workspace/service/IFieldRo
 
 这样前端现有的权限 UI 才能通过正常 HTTP 接口落库，并保留服务层校验、审计和事件逻辑。
 
+### 已补齐的权限接口
+
+本地自部署已补以下控制器，前端无需改 URL：
+
+```text
+backend-server/application/src/main/java/com/apitable/workspace/controller/NodeRoleController.java
+backend-server/application/src/main/java/com/apitable/workspace/controller/FieldPermissionController.java
+backend-server/application/src/main/java/com/apitable/organization/controller/OrgYachCompatibilityController.java
+```
+
+节点权限接口：
+
+- `GET /api/v1/node/listRole`
+- `GET /api/v1/node/collaborator/page`
+- `POST /api/v1/node/disableRoleExtend`
+- `POST /api/v1/node/enableRoleExtend`
+- `POST /api/v1/node/addRole`
+- `POST /api/v1/node/editRole`
+- `POST /api/v1/node/batchEditRole`
+- `DELETE /api/v1/node/deleteRole`
+- `DELETE /api/v1/node/batchDeleteRole`
+
+字段权限接口：
+
+- `GET /api/v1/datasheet/field/permission`
+- `GET /api/v1/datasheet/{dstId}/field/{fieldId}/listRole`
+- `GET /api/v1/datasheet/{dstId}/field/{fieldId}/collaborator/page`
+- `POST /api/v1/datasheet/{dstId}/field/{fieldId}/permission/{enable|disable}`
+- `POST /api/v1/datasheet/{dstId}/field/{fieldId}/addRole`
+- `POST /api/v1/datasheet/{dstId}/field/{fieldId}/editRole`
+- `POST /api/v1/datasheet/{dstId}/field/{fieldId}/batchEditRole`
+- `POST /api/v1/datasheet/{dstId}/field/{fieldId}/updateRoleSetting`
+- `DELETE /api/v1/datasheet/{dstId}/field/{fieldId}/deleteRole`
+- `DELETE /api/v1/datasheet/{dstId}/field/{fieldId}/batchDeleteRole`
+
+Yach/小组兼容接口：
+
+- `GET /api/v1/org/yach/group/page`
+- `POST /api/v1/org/yach/node/addRole`
+- `POST /api/v1/org/yach/datasheet/{dstId}/field/{fieldId}/addRole`
+
+本地社区版没有企业 IM 群组来源时，`org/yach/group/page` 会把本地标签
+`UnitType.TAG` 暴露成前端的小组列表；如果没有标签，接口返回空分页但不会 403。
+
 ### 2026-06-21 本地权限测试记录
 
 测试空间和表：
