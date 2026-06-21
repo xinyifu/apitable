@@ -549,13 +549,60 @@ cd backend-server
 
 ## 权限模型和本地权限设置
 
-当前 CE 本地版本里，后端具备节点/表权限计算能力，但前端调用的节点权限配置接口没有完整可用。本轮用管理员登录态请求过这些接口：
+当前 CE 本地版本里，后端具备节点/表权限计算能力。上游原始状态下，前端调用的节点权限配置接口没有完整可用。本轮最初用管理员登录态请求过这些接口：
 
 - `GET /api/v1/node/listRole`
 - `POST /api/v1/node/disableRoleExtend`
 - `POST /api/v1/node/addRole`
 
-返回为 `203 Resources do not exist`。也就是说：前端可以读取、展示并执行权限结果，但不能稳定通过前端完成节点/表级成员权限配置。
+返回为 `203 Resources do not exist`。也就是说：原始代码里前端可以读取、展示并执行权限结果，但不能稳定通过前端完成节点/表级成员权限配置。
+
+本地分支已新增后端 HTTP 包装层：
+
+```text
+backend-server/application/src/main/java/com/apitable/workspace/controller/NodeRoleController.java
+```
+
+当前已补节点/表级角色接口：
+
+- `GET /api/v1/node/listRole`
+- `GET /api/v1/node/collaborator/page`
+- `POST /api/v1/node/disableRoleExtend`
+- `POST /api/v1/node/enableRoleExtend`
+- `POST /api/v1/node/addRole`
+- `POST /api/v1/node/editRole`
+- `POST /api/v1/node/batchEditRole`
+- `DELETE /api/v1/node/deleteRole`
+- `DELETE /api/v1/node/batchDeleteRole`
+
+读接口使用 `NodePermission.READ_NODE` 校验，写接口使用 `NodePermission.ASSIGN_NODE_ROLE` 校验。注意前端命名和 service 命名方向相反：
+
+- 前端 `disableRoleExtend` 表示关闭继承、开启指定权限，后端调用 `INodeRoleService.enableNodeRole(...)`。
+- 前端 `enableRoleExtend` 表示恢复继承，后端调用 `INodeRoleService.disableNodeRole(...)`。
+
+2026-06-21 本地接口验证：
+
+```text
+登录账号: codex-row-20260621102017@local.test
+测试节点: dstnbR4FlXGA8ik3uZ
+测试成员 unitId: 2068532250797969410
+```
+
+验证结果：
+
+- `listRole` 和 `collaborator/page` 返回 `success=true`。
+- `disableRoleExtend` 可将测试节点从继承模式切到指定权限模式。
+- `addRole` 可添加 `reader`。
+- `editRole` 可改为 `editor`。
+- `batchEditRole` 可改为 `updater`。
+- `deleteRole` 可删除该成员角色。
+- `batchDeleteRole` 可批量删除该成员角色。
+- `enableRoleExtend` 可恢复继承模式。
+
+测试结束后已确认：
+
+- `dstnbR4FlXGA8ik3uZ` 的 control 记录为 `is_deleted=1`，恢复为继承模式。
+- 原权限验证表 `dstRXUQSlYsun6kkgQ` 仍保持 `owner + reader`，未被本轮接口测试破坏。
 
 ### 节点/表级角色
 
