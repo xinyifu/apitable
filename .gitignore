@@ -100,3 +100,7 @@ eslint-results.sarif
 .nx
 
 /scripts/enterprise
+
+# local tooling output
+/.playwright-cli/
+/output/
