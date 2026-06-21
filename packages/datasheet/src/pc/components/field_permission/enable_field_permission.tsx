@@ -45,6 +45,8 @@ import { useRequest, useResponsive } from 'pc/hooks';
 
 import { useAppSelector } from 'pc/store/react-redux';
 
+const getRequestErrorMessage = (error: any) => error?.response?.data?.message || error?.message || 'Request failed';
+
 export const EnableFieldPermission: React.FC<React.PropsWithChildren<IEnablePermission>> = (props) => {
   const colors = useThemeColors();
   const { permissionStatus, onClose, field } = props;
@@ -55,8 +57,9 @@ export const EnableFieldPermission: React.FC<React.PropsWithChildren<IEnablePerm
   const datasheetId = useAppSelector((state) => state.pageParams.datasheetId)!;
   const [isMemberDetail, { toggle: toggleIsMemberDetail }] = useToggle(false);
   const { screenIsAtLeast, screenIsAtMost } = useResponsive();
-  const fieldPermission = useAppSelector(Selectors.getFieldPermissionMap)!;
-  const readonly = fieldPermission[field.id] && !fieldPermission[field.id].manageable;
+  const fieldPermission = useAppSelector(Selectors.getFieldPermissionMap);
+  const currentFieldPermission = fieldPermission?.[field.id];
+  const readonly = Boolean(currentFieldPermission && !currentFieldPermission.manageable);
   const { run } = useRequest(DatasheetApi.fetchFieldPermissionRoleList, {
     manual: true,
     onSuccess(res) {
@@ -82,19 +85,23 @@ export const EnableFieldPermission: React.FC<React.PropsWithChildren<IEnablePerm
       return item.unitId;
     });
     const role = permission.value + '';
-    const res = await DatasheetApi.addFieldPermissionRole(datasheetId, field.id, {
-      role,
-      unitIds,
-    });
-    const { success, message } = res.data;
-    if (!success) {
-      handleErrMsg(message);
-      return;
+    try {
+      const res = await DatasheetApi.addFieldPermissionRole(datasheetId, field.id, {
+        role,
+        unitIds,
+      });
+      const { success, message } = res.data;
+      if (!success) {
+        handleErrMsg(message);
+        return;
+      }
+      Message.success({
+        content: t(Strings.add_role_success),
+      });
+      await fetchRoleList();
+    } catch (error: any) {
+      handleErrMsg(getRequestErrorMessage(error));
     }
-    Message.success({
-      content: t(Strings.add_role_success),
-    });
-    await fetchRoleList();
   };
 
   const permissionList = [
@@ -117,59 +124,79 @@ export const EnableFieldPermission: React.FC<React.PropsWithChildren<IEnablePerm
   };
 
   const closeFieldPermission = async () => {
-    const res = await DatasheetApi.setFieldPermissionStatus(datasheetId, field.id, false);
-    const { success, message } = res.data;
-    if (!success) {
-      handleErrMsg(message);
-      return;
+    try {
+      const res = await DatasheetApi.setFieldPermissionStatus(datasheetId, field.id, false);
+      const { success, message } = res.data;
+      if (!success) {
+        handleErrMsg(message);
+        return;
+      }
+      onClose();
+    } catch (error: any) {
+      handleErrMsg(getRequestErrorMessage(error));
     }
-    onClose();
   };
 
   const editRole = async (unitId: string, role: string) => {
-    const res = await DatasheetApi.editFieldPermissionRole(datasheetId, field.id, {
-      role,
-      unitId,
-    });
-    const { success, message } = res.data;
-    if (!success) {
-      handleErrMsg(message);
-      return;
+    try {
+      const res = await DatasheetApi.editFieldPermissionRole(datasheetId, field.id, {
+        role,
+        unitId,
+      });
+      const { success, message } = res.data;
+      if (!success) {
+        handleErrMsg(message);
+        return;
+      }
+      Message.success({
+        content: t(Strings.operate_success),
+      });
+      await fetchRoleList();
+    } catch (error: any) {
+      handleErrMsg(getRequestErrorMessage(error));
     }
-    Message.success({
-      content: t(Strings.operate_success),
-    });
-    await fetchRoleList();
   };
 
   const onRemove = async (unitId: string) => {
-    const res = await DatasheetApi.deleteFieldPermissionRole(datasheetId, field.id, unitId);
-    const { success, message } = res.data;
-    if (!success) {
-      handleErrMsg(message);
-      return;
+    try {
+      const res = await DatasheetApi.deleteFieldPermissionRole(datasheetId, field.id, unitId);
+      const { success, message } = res.data;
+      if (!success) {
+        handleErrMsg(message);
+        return;
+      }
+      Message.success({
+        content: t(Strings.operate_success),
+      });
+      await fetchRoleList();
+    } catch (error: any) {
+      handleErrMsg(getRequestErrorMessage(error));
     }
-    Message.success({
-      content: t(Strings.operate_success),
-    });
-    await fetchRoleList();
   };
 
   const fetchRoleList = async () => {
-    await run(datasheetId, field.id);
+    try {
+      await run(datasheetId, field.id);
+    } catch (error: any) {
+      handleErrMsg(getRequestErrorMessage(error));
+    }
   };
 
   const changeFormSheetAccessible = async (checked: boolean) => {
-    const res = await DatasheetApi.updateFieldPermissionSetting(datasheetId, field.id, checked);
-    const { success, message } = res.data;
-    if (!success) {
-      handleErrMsg(message);
-      return;
+    try {
+      const res = await DatasheetApi.updateFieldPermissionSetting(datasheetId, field.id, checked);
+      const { success, message } = res.data;
+      if (!success) {
+        handleErrMsg(message);
+        return;
+      }
+      Message.success({
+        content: t(Strings.operate_success),
+      });
+      await fetchRoleList();
+    } catch (error: any) {
+      handleErrMsg(getRequestErrorMessage(error));
     }
-    Message.success({
-      content: t(Strings.operate_success),
-    });
-    await fetchRoleList();
   };
 
   const createStandardUnit = (item: IFieldPermissionRole) => {

@@ -37,6 +37,8 @@ import { SubscribeUsageTipType, triggerUsageAlert } from 'enterprise/billing';
 
 const defaultSetting = { formSheetAccessible: false };
 
+const getRequestErrorMessage = (error: any) => error?.response?.data?.message || error?.message || 'Request failed';
+
 export const EnableFieldPermissionPlus: React.FC<React.PropsWithChildren<IEnablePermissionPlus>> = (props) => {
   const { field } = props;
   const [roleList, setRoleList] = useState<IFieldPermissionRole[]>([]);
@@ -44,8 +46,9 @@ export const EnableFieldPermissionPlus: React.FC<React.PropsWithChildren<IEnable
   const [setting, setSetting] = useState<{ formSheetAccessible: boolean }>();
   const datasheetId = useAppSelector((state) => state.pageParams.datasheetId)!;
   const [isMemberDetail, { toggle: toggleIsMemberDetail }] = useToggle(false);
-  const fieldPermission = useAppSelector(Selectors.getFieldPermissionMap)!;
-  const readonly = fieldPermission[field.id] && !fieldPermission[field.id].manageable;
+  const fieldPermission = useAppSelector(Selectors.getFieldPermissionMap);
+  const currentFieldPermission = fieldPermission?.[field.id];
+  const readonly = Boolean(currentFieldPermission && !currentFieldPermission.manageable);
   const [enabledFieldPermission, setEnabledFieldPermission] = useState<boolean>();
   const spaceInfo = useAppSelector((state) => state.space.curSpaceInfo);
   const spaceId = useAppSelector((state) => state.space.activeId);
@@ -85,7 +88,7 @@ export const EnableFieldPermissionPlus: React.FC<React.PropsWithChildren<IEnable
   });
 
   useEffect(() => {
-    getCollaboratorReq(pageNo);
+    getCollaboratorReq(pageNo).catch((error: any) => handleErrMsg(getRequestErrorMessage(error)));
   }, [pageNo, getCollaboratorReq]);
 
   useEffect(() => {
@@ -108,26 +111,29 @@ export const EnableFieldPermissionPlus: React.FC<React.PropsWithChildren<IEnable
     if (enabledFieldPermission) {
       return true;
     }
-    if (spaceInfo) {
-      const result = triggerUsageAlert('fieldPermissionNums', { usage: spaceInfo.fieldRoleNums + 1, alwaysAlert: true }, SubscribeUsageTipType.Alert);
-      if (result) {
+    try {
+      if (spaceInfo) {
+        const result = triggerUsageAlert?.('fieldPermissionNums', { usage: spaceInfo.fieldRoleNums + 1, alwaysAlert: true }, SubscribeUsageTipType?.Alert);
+        if (result) {
+          return false;
+        }
+      }
+
+      const res = await DatasheetApi.setFieldPermissionStatus(datasheetId, field.id, true, true);
+      const { success, message } = res.data;
+
+      if (!success) {
+        handleErrMsg(message);
         return false;
       }
-    }
-
-    const res = await DatasheetApi.setFieldPermissionStatus(datasheetId, field.id, true, true);
-    const { success, message } = res.data;
-
-    if (!success) {
-      Message.warning({
-        content: message,
-      });
+      if (spaceId) {
+        dispatch(StoreActions.getSpaceInfo(spaceId, true));
+      }
+      return true;
+    } catch (error: any) {
+      handleErrMsg(getRequestErrorMessage(error));
       return false;
     }
-    if (spaceId) {
-      dispatch(StoreActions.getSpaceInfo(spaceId, true));
-    }
-    return true;
   };
 
   const submitAddRole = async (unitInfos: IUnitValue[], permission: IOption) => {
@@ -148,35 +154,39 @@ export const EnableFieldPermissionPlus: React.FC<React.PropsWithChildren<IEnable
     if (!openFieldPermissionRes) {
       return;
     }
-    if (groupIds.length > 0) {
-      const res = await DatasheetApi.addYachFieldPermissionRole(datasheetId, field.id, {
-        role,
-        unitIds: groupIds,
-      });
-      const { success, message } = res.data;
-      if (!success) {
-        handleErrMsg(message);
-        return;
+    try {
+      if (groupIds.length > 0) {
+        const res = await DatasheetApi.addYachFieldPermissionRole(datasheetId, field.id, {
+          role,
+          unitIds: groupIds,
+        });
+        const { success, message } = res.data;
+        if (!success) {
+          handleErrMsg(message);
+          return;
+        }
+        Message.success({
+          content: t(Strings.add_role_success),
+        });
+        await fetchRoleList();
       }
-      Message.success({
-        content: t(Strings.add_role_success),
-      });
-      await fetchRoleList();
-    }
-    if (unitIdsNoGroup.length > 0) {
-      const res = await DatasheetApi.addFieldPermissionRole(datasheetId, field.id, {
-        role,
-        unitIds: unitIdsNoGroup,
-      });
-      const { success, message } = res.data;
-      if (!success) {
-        handleErrMsg(message);
-        return;
+      if (unitIdsNoGroup.length > 0) {
+        const res = await DatasheetApi.addFieldPermissionRole(datasheetId, field.id, {
+          role,
+          unitIds: unitIdsNoGroup,
+        });
+        const { success, message } = res.data;
+        if (!success) {
+          handleErrMsg(message);
+          return;
+        }
+        Message.success({
+          content: t(Strings.add_role_success),
+        });
+        await fetchRoleList();
       }
-      Message.success({
-        content: t(Strings.add_role_success),
-      });
-      await fetchRoleList();
+    } catch (error: any) {
+      handleErrMsg(getRequestErrorMessage(error));
     }
   };
 
@@ -204,19 +214,23 @@ export const EnableFieldPermissionPlus: React.FC<React.PropsWithChildren<IEnable
     if (!openFieldPermissionRes) {
       return;
     }
-    const res = await DatasheetApi.editFieldPermissionRole(datasheetId, field.id, {
-      role,
-      unitId,
-    });
-    const { success, message } = res.data;
-    if (!success) {
-      handleErrMsg(message);
-      return;
+    try {
+      const res = await DatasheetApi.editFieldPermissionRole(datasheetId, field.id, {
+        role,
+        unitId,
+      });
+      const { success, message } = res.data;
+      if (!success) {
+        handleErrMsg(message);
+        return;
+      }
+      Message.success({
+        content: t(Strings.operate_success),
+      });
+      await fetchRoleList();
+    } catch (error: any) {
+      handleErrMsg(getRequestErrorMessage(error));
     }
-    Message.success({
-      content: t(Strings.operate_success),
-    });
-    await fetchRoleList();
   };
 
   const onRemove = async (unitId: string) => {
@@ -224,33 +238,45 @@ export const EnableFieldPermissionPlus: React.FC<React.PropsWithChildren<IEnable
     if (!openFieldPermissionRes) {
       return;
     }
-    const res = await DatasheetApi.deleteFieldPermissionRole(datasheetId, field.id, unitId);
-    const { success, message } = res.data;
-    if (!success) {
-      handleErrMsg(message);
-      return;
+    try {
+      const res = await DatasheetApi.deleteFieldPermissionRole(datasheetId, field.id, unitId);
+      const { success, message } = res.data;
+      if (!success) {
+        handleErrMsg(message);
+        return;
+      }
+      Message.success({
+        content: t(Strings.operate_success),
+      });
+      await fetchRoleList();
+    } catch (error: any) {
+      handleErrMsg(getRequestErrorMessage(error));
     }
-    Message.success({
-      content: t(Strings.operate_success),
-    });
-    await fetchRoleList();
   };
 
   const fetchRoleList = async () => {
-    await run(datasheetId, field.id);
+    try {
+      await run(datasheetId, field.id);
+    } catch (error: any) {
+      handleErrMsg(getRequestErrorMessage(error));
+    }
   };
 
   const changeFormSheetAccessible = async (checked: boolean) => {
-    const res = await DatasheetApi.updateFieldPermissionSetting(datasheetId, field.id, checked);
-    const { success, message } = res.data;
-    if (!success) {
-      handleErrMsg(message);
-      return;
+    try {
+      const res = await DatasheetApi.updateFieldPermissionSetting(datasheetId, field.id, checked);
+      const { success, message } = res.data;
+      if (!success) {
+        handleErrMsg(message);
+        return;
+      }
+      Message.success({
+        content: t(Strings.operate_success),
+      });
+      await fetchRoleList();
+    } catch (error: any) {
+      handleErrMsg(getRequestErrorMessage(error));
     }
-    Message.success({
-      content: t(Strings.operate_success),
-    });
-    await fetchRoleList();
   };
 
   const createStandardUnit = (item: IFieldPermissionRole) => {
@@ -264,16 +290,20 @@ export const EnableFieldPermissionPlus: React.FC<React.PropsWithChildren<IEnable
   };
 
   const resetPermission = async () => {
-    const res = await DatasheetApi.setFieldPermissionStatus(datasheetId, field.id, false);
-    const { success, message } = res.data;
-    if (!success) {
-      handleErrMsg(message);
-      return;
+    try {
+      const res = await DatasheetApi.setFieldPermissionStatus(datasheetId, field.id, false);
+      const { success, message } = res.data;
+      if (!success) {
+        handleErrMsg(message);
+        return;
+      }
+      if (spaceId) {
+        dispatch(StoreActions.getSpaceInfo(spaceId, true));
+      }
+      fetchRoleList();
+    } catch (error: any) {
+      handleErrMsg(getRequestErrorMessage(error));
     }
-    if (spaceId) {
-      dispatch(StoreActions.getSpaceInfo(spaceId, true));
-    }
-    fetchRoleList();
   };
 
   const batchEditRole = async (role: string) => {
@@ -285,19 +315,23 @@ export const EnableFieldPermissionPlus: React.FC<React.PropsWithChildren<IEnable
     if (!unitIds.length) {
       return;
     }
-    const res = await DatasheetApi.batchEditFieldPermissionRole(datasheetId, field.id, {
-      role,
-      unitIds,
-    });
-    const { success, message } = res.data;
-    if (!success) {
-      handleErrMsg(message);
-      return;
+    try {
+      const res = await DatasheetApi.batchEditFieldPermissionRole(datasheetId, field.id, {
+        role,
+        unitIds,
+      });
+      const { success, message } = res.data;
+      if (!success) {
+        handleErrMsg(message);
+        return;
+      }
+      Message.success({
+        content: t(Strings.operate_success),
+      });
+      await fetchRoleList();
+    } catch (error: any) {
+      handleErrMsg(getRequestErrorMessage(error));
     }
-    Message.success({
-      content: t(Strings.operate_success),
-    });
-    await fetchRoleList();
   };
 
   const batchDeleteRole = async () => {
@@ -310,18 +344,22 @@ export const EnableFieldPermissionPlus: React.FC<React.PropsWithChildren<IEnable
     if (!unitIds.length) {
       return;
     }
-    const res = await DatasheetApi.batchDeletePermissionRole(datasheetId, field.id, {
-      unitIds,
-    });
-    const { success, message } = res.data;
-    if (!success) {
-      handleErrMsg(message);
-      return;
+    try {
+      const res = await DatasheetApi.batchDeletePermissionRole(datasheetId, field.id, {
+        unitIds,
+      });
+      const { success, message } = res.data;
+      if (!success) {
+        handleErrMsg(message);
+        return;
+      }
+      Message.success({
+        content: t(Strings.operate_success),
+      });
+      await fetchRoleList();
+    } catch (error: any) {
+      handleErrMsg(getRequestErrorMessage(error));
     }
-    Message.success({
-      content: t(Strings.operate_success),
-    });
-    await fetchRoleList();
   };
 
   if (!setting) {

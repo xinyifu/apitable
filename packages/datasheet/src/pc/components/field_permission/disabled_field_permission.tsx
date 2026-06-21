@@ -28,6 +28,8 @@ import permissionImage from 'static/icon/datasheet/datasheet_img_field_permissio
 // @ts-ignore
 import { triggerUsageAlert } from 'enterprise/billing';
 
+const getRequestErrorMessage = (error: any) => error?.response?.data?.message || error?.message || 'Request failed';
+
 export const DisabledFieldPermission: React.FC<React.PropsWithChildren<IDisabledPermission>> = (props) => {
   const { setPermissionStatus, field } = props;
   const datasheetId = useAppSelector((state) => state.pageParams.datasheetId)!;
@@ -35,19 +37,25 @@ export const DisabledFieldPermission: React.FC<React.PropsWithChildren<IDisabled
   const spaceInfo = useAppSelector((state) => state.space.curSpaceInfo);
 
   const openFieldPermission = async () => {
-    const res = await DatasheetApi.setFieldPermissionStatus(datasheetId, field.id, true);
-    const { success, message } = res.data;
+    try {
+      const res = await DatasheetApi.setFieldPermissionStatus(datasheetId, field.id, true);
+      const { success, message } = res.data;
 
-    if (!success) {
+      if (!success) {
+        Message.warning({
+          content: message,
+        });
+        return;
+      }
+      if (spaceInfo) {
+        triggerUsageAlert?.('fieldPermissionNums', { usage: spaceInfo.fieldRoleNums + 1 });
+      }
+      setPermissionStatus(true);
+    } catch (error: any) {
       Message.warning({
-        content: message,
+        content: getRequestErrorMessage(error),
       });
-      return;
     }
-    if (spaceInfo) {
-      triggerUsageAlert('fieldPermissionNums', { usage: spaceInfo.fieldRoleNums + 1 });
-    }
-    setPermissionStatus(true);
   };
 
   const openPermission = () => {
