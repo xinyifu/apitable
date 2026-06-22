@@ -852,6 +852,7 @@
   "benin": "贝宁",
   "bermuda": "百慕大群岛",
   "bhutan": "不丹",
+  "billing_info_billing": "账单",
   "billing_period": "计费周期：${period}",
   "billing_subscription_warning": "功能体验",
   "billing_usage_warning": "用量已超限",

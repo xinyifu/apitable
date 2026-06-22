@@ -895,6 +895,7 @@
   "billing_over_limit_tip_common": "亲爱的用户，您当前的操作已经触发了您的订阅级别的用量限制。为了继续享受无限制的操作，我们建议您升级您的订阅。",
   "billing_over_limit_tip_forbidden": "您的试用时长或订阅期限已过期，请联系销售顾问续期。",
   "billing_over_limit_tip_widget": "空间站的小程序安装数量已达到上限，请升级订阅。",
+  "billing_info_billing": "账单",
   "billing_period": "计费周期：${period}",
   "billing_subscription_warning": "功能体验",
   "billing_usage_warning": "用量已超限",

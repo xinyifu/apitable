@@ -106,7 +106,7 @@ export const BasicInfo = () => {
     <div className={styles.basicInfo}>
       <div style={{ maxWidth: '100%' }}>
         {info.map((item) => (
-          <Typography variant="body3" className={styles.item} key={item.label}>
+          <Typography variant="body3" component="div" className={styles.item} key={item.label}>
             <span className={styles.label}>{item.label}：</span>
             {item.value}
           </Typography>

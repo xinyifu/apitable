@@ -64,6 +64,14 @@ portfinder
           );
 
           server.use(
+            createProxyMiddleware('/assets', {
+              target: process.env.API_PROXY || process.env.API_ASSET_SERVER || 'http://127.0.0.1:9000',
+              changeOrigin: true,
+              cookieDomainRewrite: '',
+            }),
+          );
+
+          server.use(
             createProxyMiddleware('/fusion', {
               target: process.env.API_PROXY || process.env.API_FUSION_SERVER || 'http://127.0.0.1:3333',
               changeOrigin: true,

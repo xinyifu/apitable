@@ -890,6 +890,7 @@ export type StringKeysMapType = {
   'benin': 'benin',
   'bermuda': 'bermuda',
   'bhutan': 'bhutan',
+  'billing_info_billing': 'billing_info_billing',
   'billing_over_limit_tip_common': 'billing_over_limit_tip_common',
   'billing_over_limit_tip_forbidden': 'billing_over_limit_tip_forbidden',
   'billing_over_limit_tip_widget': 'billing_over_limit_tip_widget',

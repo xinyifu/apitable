@@ -16,7 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-export {};
+export type IHooks = {
+  curGuideWizardId?: number;
+  triggeredGuideInfo?: Record<string, any>;
+  [key: string]: any;
+};
+
+export const guide = (state: IHooks = {}) => state;
 
 export type StringSaaSKeysMapType = {};
 

@@ -29,7 +29,6 @@ import { spaceMemberManage } from '../../modules/org/store/reducers/space_member
 import { invite } from '../../modules/org/store/reducers/invite';
 import { spacePermissionManage } from '../../modules/org/store/reducers/space_permission_manage';
 import { notification } from '../../modules/user/store/reducers/notification';
-// @ts-ignore
 import { guide } from '../../modules/enterprise';
 import { toolbar } from '../../modules/database/store/reducers/toolbar';
 import { rightPane } from '../../modules/database/store/reducers/right_pane';
@@ -84,7 +83,6 @@ export const rootReducers = combineReducers<IReduxState>({
   invite,
   spacePermissionManage,
   notification,
-  // @ts-ignore
   hooks: guide,
   toolbar,
   rightPane,

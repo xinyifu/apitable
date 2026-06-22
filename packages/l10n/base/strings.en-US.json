@@ -649,6 +649,7 @@
   "benin": "Benin",
   "bermuda": "Bermuda",
   "bhutan": "Bhutan",
+  "billing_info_billing": "Billing",
   "billing_period": "Billing period: ${period}",
   "billing_subscription_warning": "Feature experience",
   "billing_usage_warning": "Usage warning",

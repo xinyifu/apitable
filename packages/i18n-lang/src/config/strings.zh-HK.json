@@ -911,6 +911,7 @@
   "billing_over_limit_tip_common": "空間使用量已超過限制，升級後可享有更高的空間使用量。",
   "billing_over_limit_tip_forbidden": "您的試用期或訂閱期已過期。請聯絡銷售顧問續訂。",
   "billing_over_limit_tip_widget": "小組件安裝數量已超出限制，您可以升級以獲得更高的使用量。",
+  "billing_info_billing": "帳單",
   "billing_period": "計費周期：${period}",
   "billing_subscription_warning": "功能體驗",
   "billing_usage_warning": "用量已超限",
