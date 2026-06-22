@@ -342,7 +342,7 @@ if (response!.data?.isAllowOverLimit) {
 
 ```java
 public Seat getSeat() {
-    return new Seat(1000000L);
+    return new Seat(1000L);
 }
 
 public CapacitySize getCapacitySize() {
@@ -350,11 +350,11 @@ public CapacitySize getCapacitySize() {
 }
 
 public FileNodeNums getFileNodeNums() {
-    return new FileNodeNums(1000000L);
+    return new FileNodeNums(10000L);
 }
 
 public RowsPerSheet getRowsPerSheet() {
-    return new RowsPerSheet(1000000L);
+    return new RowsPerSheet(100000L);
 }
 
 public ArchivedRowsPerSheet getArchivedRowsPerSheet() {
@@ -362,7 +362,7 @@ public ArchivedRowsPerSheet getArchivedRowsPerSheet() {
 }
 
 public TotalRows getTotalRows() {
-    return new TotalRows(10000000L);
+    return new TotalRows(100000000L);
 }
 
 public ApiQpsNums getApiQpsNums() {
@@ -497,7 +497,7 @@ if (skipUsageVerification) {
 
 1. backend 编译通过：`backend-server\gradlew.bat :application:compileJava`。
 2. room-server 健康检查通过：`GET http://127.0.0.1:3333/actuator/health` 返回 `status: ok`。
-3. 前端订阅接口返回修改后的权益值，包括 `maxRowsPerSheet=1000000`、`maxRowsInSpace=10000000`、`maxSheetNums=1000000`、`maxApiCall=-1`。
+3. 前端订阅接口返回修改后的权益值，包括 `maxSeats=1000`、`maxRowsPerSheet=100000`、`maxRowsInSpace=100000000`、`maxSheetNums=10000`、`maxApiCall=-1`。
 4. 文件节点限制已放宽：同一空间连续创建 6 个 datasheet 节点成功，超过原社区版 5 个文件节点限制。
 5. 每表行数和空间总行数限制已实测：通过 Fusion API `POST /fusion/v1/datasheets/{dstId}/records` 新增 255 条记录；新表原有 3 条默认记录，最终 `GET /fusion/v1/datasheets/{dstId}/records?pageSize=1000` 返回 258 条，数据库 `apitable_datasheet_record` 同步确认未删除记录数为 258，未触发 `RECORD_ADD_LIMIT_PER_DATASHEET` 或 `RECORD_ADD_LIMIT_WITHIN_SPACE`。
 6. API 月调用量：`GET /api/v1/internal/space/{spaceId}/apiUsages` 返回 `isAllowOverLimit=true`、`apiCallNumsPerMonth=-1`、`maxApiUsageCount=-1`；Fusion API 实际调用写入了 `apitable_api_usage`，但没有被月调用量 guard 拦截。

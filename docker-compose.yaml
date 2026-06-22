@@ -180,7 +180,7 @@ services:
       --character-set-server=utf8mb4
       --collation-server=utf8mb4_general_ci
       --sql_mode=IGNORE_SPACE,NO_ENGINE_SUBSTITUTION
-      --lower_case_table_names=2
+      --lower_case_table_names=${MYSQL_LOWER_CASE_TABLE_NAMES:-2}
     healthcheck:
       test: "mysql ${MYSQL_DATABASE} -u${MYSQL_USERNAME} -p${MYSQL_PASSWORD} -e 'SELECT 1;'"
       interval: 5s
