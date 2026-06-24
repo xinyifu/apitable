@@ -29,7 +29,6 @@ import {
   CollaCommandName,
   DatasheetApi,
   fastCloneDeep,
-  getRollbackActions,
   IChangesetPack,
   IMemberInfoInAddressList,
   IRemoteChangeset,
@@ -49,13 +48,12 @@ import { Portal } from 'pc/components/portal';
 import { Beta } from 'pc/components/robot/robot_panel/robot_list_head';
 import { useAppDispatch } from 'pc/hooks/use_app_dispatch';
 import { resourceService } from 'pc/resource_service';
-import { store } from 'pc/store';
 import { useAppSelector } from 'pc/store/react-redux';
 import { getEnvVariables } from 'pc/utils/env';
 import DataEmptyDark from 'static/icon/common/time_machine_empty_dark.png';
 import DataEmptyLight from 'static/icon/common/time_machine_empty_light.png';
-import { TabPaneKeys } from './interface';
-import { getForeignDatasheetIdsByOp, getOperationInfo } from './utils';
+import { ITimeMachineRecordRef, TabPaneKeys } from './interface';
+import { getForeignDatasheetIdsByOp, getOperationDetail } from './utils';
 // @ts-ignore
 import { getSocialWecomUnitName } from 'enterprise/home/social_platform/utils';
 // @ts-ignore
@@ -66,8 +64,48 @@ const { TabPane } = Tabs;
 
 const MAX_COUNT = Number.MAX_SAFE_INTEGER;
 const DATEFORMAT = 'YYYY-MM-DD HH:mm:ss';
+const MAX_VISIBLE_RECORD_REFS = 3;
 
-export const TimeMachine: React.FC<React.PropsWithChildren<{ onClose: (visible: boolean) => void }>> = ({ onClose }) => {
+const getRecordRefTooltip = (record: ITimeMachineRecordRef) => {
+  const sourceText = {
+    current: '标题来自当前数据',
+    history: '标题来自历史数据',
+    none: '未识别到标题',
+  }[record.titleSource];
+  const statusText = {
+    exists: '当前存在',
+    deleted: '已删除',
+    unknown: '状态未知',
+  }[record.status];
+  return `${record.title ? `${record.title}\n` : ''}${record.recordId}\n${statusText}，${sourceText}`;
+};
+
+const TimeMachineRecordRefs: React.FC<{ records: ITimeMachineRecordRef[] }> = ({ records }) => {
+  if (!records.length) {
+    return null;
+  }
+  const visibleRecords = records.slice(0, MAX_VISIBLE_RECORD_REFS);
+  const hiddenCount = records.length - visibleRecords.length;
+  return (
+    <div className={styles.recordRefs}>
+      {visibleRecords.map((record) => (
+        <span
+          className={styles.recordRef}
+          data-status={record.status}
+          key={record.recordId}
+          title={getRecordRefTooltip(record)}
+        >
+          {record.status === 'deleted' && <span className={styles.recordDeleted}>已删除</span>}
+          {record.title && <span className={styles.recordTitle}>{record.title}</span>}
+          <span className={styles.recordId}>{record.recordId}</span>
+        </span>
+      ))}
+      {hiddenCount > 0 && <span className={styles.recordMore}>+ {hiddenCount} 条</span>}
+    </div>
+  );
+};
+
+export const TimeMachine: React.FC<React.PropsWithChildren<{ onClose: (_visible: boolean) => void }>> = ({ onClose }) => {
   const datasheetId = useAppSelector(Selectors.getActiveDatasheetId)!;
   const curDatasheet = useAppSelector((state) => Selectors.getDatasheet(state, datasheetId));
   const activeNodePrivate = useAppSelector((state) => Selectors.getActiveNodePrivate(state));
@@ -105,7 +143,6 @@ export const TimeMachine: React.FC<React.PropsWithChildren<{ onClose: (visible: 
       .then((res) => {
         // The returned data is from low to high, when displaying, you need to display the high version first
         const csl = res.data.data.reverse();
-        console.log('Load changesetList: ', csl);
         const nextCsl = changesetList === null ? csl : changesetList.concat(csl);
         setChangesetList(nextCsl.filter((item) => item.operations.filter((op) => !op.cmd.startsWith('System')).length > 0));
       })
@@ -177,8 +214,6 @@ export const TimeMachine: React.FC<React.PropsWithChildren<{ onClose: (visible: 
     (operations: any, index: any) => {
       if (!changesetList) return;
       const cloneDatasheet = fastCloneDeep(curDatasheet)!;
-      const actions = getRollbackActions(operations, store.getState(), cloneDatasheet.snapshot);
-      console.log('---------preview actions', actions);
       const revision = `${changesetList[index].revision}`;
       setCurPreview(index);
 
@@ -325,6 +360,7 @@ export const TimeMachine: React.FC<React.PropsWithChildren<{ onClose: (visible: 
                       spaceInfo,
                     }) || '';
                   const ops = item.operations.filter((op) => !op.cmd.startsWith('System'));
+                  const detail = getOperationDetail(ops, curDatasheet?.snapshot);
                   return (
                     <section
                       className={styles.listItem}
@@ -332,7 +368,6 @@ export const TimeMachine: React.FC<React.PropsWithChildren<{ onClose: (visible: 
                       data-active={index === curPreview}
                       onClick={() => {
                         onPreviewClick(index);
-                        console.log('ops', ops);
                       }}
                     >
                       <div style={{ display: 'flex', gap: '8px' }}>
@@ -340,8 +375,9 @@ export const TimeMachine: React.FC<React.PropsWithChildren<{ onClose: (visible: 
                         <div>
                           <div className={styles.title}>
                             <span style={{ paddingRight: '4px' }}>{title}</span>
-                            <span>{getOperationInfo(ops)}</span>
+                            <span>{detail.summary}</span>
                           </div>
+                          <TimeMachineRecordRefs records={detail.records} />
                           <div className={styles.timestamp}>
                             {dayjs.tz(item.createdAt).format(DATEFORMAT)}
                             {getEnvVariables().ENABLE_TIME_MACHINE_ROOLBACK && 

@@ -19,11 +19,14 @@
 import dayjs from 'dayjs';
 import { pick } from 'lodash';
 import {
+  Field,
+  ICellValue,
   IOperation,
   IJOTAction,
   IObjectDeleteAction,
   IObjectReplaceAction,
   IObjectInsertAction,
+  ISnapshot,
   CollaCommandName,
   Strings,
   OTActionName,
@@ -32,7 +35,7 @@ import {
   FieldTypeDescriptionMap,
 } from '@apitable/core';
 import { ALL_ALARM_SUBTRACT } from 'pc/utils/constant';
-import { commandTran, StringsCommandName } from './interface';
+import { commandTran, ITimeMachineOperationDetail, ITimeMachineRecordRef, StringsCommandName } from './interface';
 
 const DATEFORMAT='YYYY-MM-DD HH:mm';
 
@@ -56,6 +59,95 @@ export const getForeignDatasheetIdsByOp = (opList: IOperation[]) => {
     }
   });
   return [...ids];
+};
+
+const getPrimaryFieldId = (snapshot?: ISnapshot) => {
+  const firstViewFieldId = snapshot?.meta.views[0]?.columns[0]?.fieldId;
+  if (firstViewFieldId) {
+    return firstViewFieldId;
+  }
+  return Object.keys(snapshot?.meta.fieldMap || {})[0];
+};
+
+const getRecordTitleFromCellValue = (snapshot: ISnapshot | undefined, fieldId: string | undefined, cellValue: ICellValue | undefined) => {
+  if (!snapshot || !fieldId || cellValue == null) {
+    return;
+  }
+  const field = snapshot.meta.fieldMap[fieldId];
+  if (!field) {
+    return;
+  }
+  const title = Field.bindModel(field).cellValueToString(cellValue);
+  return title?.trim() || undefined;
+};
+
+const getRecordTitle = (
+  snapshot: ISnapshot | undefined,
+  recordId: string,
+  historyRecordData?: Record<string, ICellValue>,
+): Pick<ITimeMachineRecordRef, 'title' | 'titleSource'> => {
+  const primaryFieldId = getPrimaryFieldId(snapshot);
+  const currentRecordData = snapshot?.recordMap[recordId]?.data;
+  const currentTitle = getRecordTitleFromCellValue(snapshot, primaryFieldId, currentRecordData?.[primaryFieldId]);
+  if (currentTitle) {
+    return { title: currentTitle, titleSource: 'current' };
+  }
+  const historyTitle = getRecordTitleFromCellValue(snapshot, primaryFieldId, historyRecordData?.[primaryFieldId]);
+  if (historyTitle) {
+    return { title: historyTitle, titleSource: 'history' };
+  }
+  return { titleSource: 'none' };
+};
+
+export const getOperationDetail = (ops: IOperation[], snapshot?: ISnapshot): ITimeMachineOperationDetail => {
+  const recordRefs = new Map<string, {
+    fieldIds: Set<string>;
+    hasHistoryRecordData: boolean;
+    historyRecordData?: Record<string, ICellValue>;
+  }>();
+
+  ops.forEach((op) => {
+    op.actions.forEach((action) => {
+      const path = action.p;
+      if (!Array.isArray(path) || path[0] !== 'recordMap' || typeof path[1] !== 'string') {
+        return;
+      }
+      const recordId = path[1];
+      const ref = recordRefs.get(recordId) || {
+        fieldIds: new Set<string>(),
+        hasHistoryRecordData: false,
+      };
+      if (path[2] === 'data' && typeof path[3] === 'string') {
+        ref.fieldIds.add(path[3]);
+      }
+
+      const oldRecord = (action as IObjectDeleteAction | IObjectReplaceAction).od;
+      const newRecord = (action as IObjectInsertAction | IObjectReplaceAction).oi;
+      const historyRecord = oldRecord?.data ? oldRecord : newRecord?.data ? newRecord : undefined;
+      if (historyRecord?.data) {
+        ref.historyRecordData = historyRecord.data;
+        ref.hasHistoryRecordData = true;
+      }
+      recordRefs.set(recordId, ref);
+    });
+  });
+
+  const records = Array.from(recordRefs.entries()).map(([recordId, ref]) => {
+    const currentRecord = snapshot?.recordMap[recordId];
+    const status: ITimeMachineRecordRef['status'] = currentRecord ? 'exists' : ref.hasHistoryRecordData ? 'deleted' : 'unknown';
+    const titleInfo = getRecordTitle(snapshot, recordId, ref.historyRecordData);
+    return {
+      recordId,
+      ...titleInfo,
+      status,
+      fieldIds: Array.from(ref.fieldIds),
+    };
+  });
+
+  return {
+    summary: getOperationInfo(ops),
+    records,
+  };
 };
 
 export const getOperationInfo = (ops: IOperation[]) =>ops.map((op) => {

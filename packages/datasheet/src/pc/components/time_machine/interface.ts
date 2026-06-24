@@ -5,6 +5,19 @@ export enum TabPaneKeys {
   BACKUP = 'BACKUP',
 }
 
+export interface ITimeMachineRecordRef {
+  recordId: string;
+  title?: string;
+  titleSource: 'current' | 'history' | 'none';
+  status: 'exists' | 'deleted' | 'unknown';
+  fieldIds: string[];
+}
+
+export interface ITimeMachineOperationDetail {
+  summary: string;
+  records: ITimeMachineRecordRef[];
+}
+
 export const StringsCommandName = {
   [CollaCommandName.SetRecords]: Strings.timemachine_set_record,
   [CollaCommandName.AddRecords]: Strings.timemachine_add_record,
