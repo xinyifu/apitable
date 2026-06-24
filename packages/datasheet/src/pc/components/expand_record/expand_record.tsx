@@ -32,6 +32,7 @@ import {
   FieldOperateType,
   Navigation,
   PermissionType,
+  PREVIEW_DATASHEET_ID,
   RecordVision,
   ResourceIdPrefix,
   ResourceType,
@@ -228,12 +229,17 @@ const Wrapper: React.FC<React.PropsWithChildren<IExpandRecordWrapperProp>> = (pr
   const [realActiveRecordId, setRealActiveRecordId] = useState<string>();
   const [realRecordIds, setRealRecordIds] = useState(recordIds);
   const isMirror = nodeId.startsWith(ResourceIdPrefix.Mirror);
+  const isPreviewDatasheet = nodeId === PREVIEW_DATASHEET_ID;
   const [datasheetId, setDatasheetId] = useState<string | undefined>(nodeId);
   const { snapshot, isPartOfData, visibleRows, datasheetErrorCode, pageParamsRecordId, activeDatasheetId, mirrorSourceDstId } = useAppSelector(
     (state) => ({
       snapshot: Selectors.getSnapshot(state, datasheetId),
       isPartOfData: Selectors.getDatasheet(state, datasheetId)?.isPartOfData,
-      datasheetErrorCode: isMirror ? Selectors.getMirrorErrorCode(state, nodeId) : Selectors.getDatasheetErrorCode(state, datasheetId),
+      datasheetErrorCode: isPreviewDatasheet
+        ? null
+        : isMirror
+          ? Selectors.getMirrorErrorCode(state, nodeId)
+          : Selectors.getDatasheetErrorCode(state, datasheetId),
       visibleRows: Selectors.getVisibleRows(state),
       pageParamsRecordId: state.pageParams.recordId,
       activeDatasheetId: Selectors.getActiveDatasheetId(state),
@@ -242,7 +248,9 @@ const Wrapper: React.FC<React.PropsWithChildren<IExpandRecordWrapperProp>> = (pr
     shallowEqual,
   );
   const hasRecordIdsData = () => snapshot && recordIds.every((recordId) => snapshot.recordMap && snapshot.recordMap?.[recordId]);
-  const [independentDataLoading, setIndependentDataLoading] = useState<boolean>(isIndependent && isPartOfData !== false && !hasRecordIdsData());
+  const [independentDataLoading, setIndependentDataLoading] = useState<boolean>(
+    isIndependent && !isPreviewDatasheet && isPartOfData !== false && !hasRecordIdsData(),
+  );
 
   useEffect(() => {
     if (independentDataLoading) {

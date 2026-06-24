@@ -29,6 +29,7 @@ import {
   CollaCommandName,
   DatasheetApi,
   fastCloneDeep,
+  getRollbackActions,
   IChangesetPack,
   IMemberInfoInAddressList,
   IRemoteChangeset,
@@ -44,13 +45,13 @@ import { CloseOutlined, QuestionCircleOutlined } from '@apitable/icons';
 import { Avatar, Modal } from 'pc/components/common';
 import { notify } from 'pc/components/common/notify';
 import { NotifyKey } from 'pc/components/common/notify/notify.interface';
-import { expandRecordIdNavigate } from 'pc/components/expand_record';
+import { expandRecordIdNavigate, expandRecordInCenter } from 'pc/components/expand_record';
 import { Portal } from 'pc/components/portal';
 import { Beta } from 'pc/components/robot/robot_panel/robot_list_head';
 import { useAppDispatch } from 'pc/hooks/use_app_dispatch';
 import { resourceService } from 'pc/resource_service';
+import { store } from 'pc/store';
 import { useAppSelector } from 'pc/store/react-redux';
-import { copy2clipBoard } from 'pc/utils/dom';
 import { getEnvVariables } from 'pc/utils/env';
 import DataEmptyDark from 'static/icon/common/time_machine_empty_dark.png';
 import DataEmptyLight from 'static/icon/common/time_machine_empty_light.png';
@@ -68,32 +69,59 @@ const MAX_COUNT = Number.MAX_SAFE_INTEGER;
 const DATEFORMAT = 'YYYY-MM-DD HH:mm:ss';
 const MAX_VISIBLE_RECORD_REFS = 3;
 
-const getRecordRefTooltip = (record: ITimeMachineRecordRef) => {
+const getRecordRefTooltip = (record: ITimeMachineRecordRef, existsInPreview: boolean) => {
+  if (existsInPreview) {
+    return `${record.title ? `${record.title}\n` : ''}${record.recordId}\n点击打开预览版本中的记录详情`;
+  }
   const statusText = {
-    exists: '点击标签打开记录，点击 recordId 复制',
-    deleted: '记录已删除，点击 recordId 复制',
-    unknown: '暂时无法定位该记录，点击 recordId 复制',
+    exists: '点击打开当前记录详情',
+    deleted: '记录已删除。先点击这条操作记录进入历史预览，再打开记录详情',
+    unknown: '暂时无法定位该记录',
   }[record.status];
   return `${record.title ? `${record.title}\n` : ''}${record.recordId}\n${statusText}`;
 };
 
-const onOpenRecordRef = (event: React.MouseEvent, record: ITimeMachineRecordRef) => {
+const onOpenRecordRef = (
+  event: React.MouseEvent,
+  record: ITimeMachineRecordRef,
+  existsInPreview: boolean,
+  viewId?: string,
+  currentDatasheetId?: string,
+  isPreviewing?: boolean,
+) => {
   event.stopPropagation();
+  if (existsInPreview) {
+    expandRecordInCenter({
+      datasheetId: PREVIEW_DATASHEET_ID,
+      activeRecordId: record.recordId,
+      recordIds: [record.recordId],
+      viewId,
+    });
+    return;
+  }
   if (record.status !== 'exists') {
-    message.info(record.status === 'deleted' ? '该记录已删除，可复制 recordId 后查看历史' : '暂时无法定位该记录');
+    message.info(record.status === 'deleted' ? '该记录已删除。先点击这条操作记录进入历史预览，再打开记录详情' : '暂时无法定位该记录');
+    return;
+  }
+  if (isPreviewing && currentDatasheetId) {
+    expandRecordInCenter({
+      datasheetId: currentDatasheetId,
+      activeRecordId: record.recordId,
+      recordIds: [record.recordId],
+      viewId,
+    });
     return;
   }
   expandRecordIdNavigate(record.recordId);
 };
 
-const onCopyRecordId = (event: React.MouseEvent, recordId: string) => {
-  event.stopPropagation();
-  copy2clipBoard(recordId, () => {
-    message.success('已复制 recordId');
-  });
-};
-
-const TimeMachineRecordRefs: React.FC<{ records: ITimeMachineRecordRef[] }> = ({ records }) => {
+const TimeMachineRecordRefs: React.FC<{
+  records: ITimeMachineRecordRef[];
+  previewRecordMap?: Record<string, any>;
+  viewId?: string;
+  currentDatasheetId?: string;
+  isPreviewing?: boolean;
+}> = ({ records, previewRecordMap, viewId, currentDatasheetId, isPreviewing }) => {
   if (!records.length) {
     return null;
   }
@@ -101,23 +129,26 @@ const TimeMachineRecordRefs: React.FC<{ records: ITimeMachineRecordRef[] }> = ({
   const hiddenCount = records.length - visibleRecords.length;
   return (
     <div className={styles.recordRefs}>
-      {visibleRecords.map((record) => (
-        <button
-          type="button"
-          aria-label={record.status === 'exists' ? `打开记录 ${record.recordId}` : `查看记录状态 ${record.recordId}`}
-          className={styles.recordRef}
-          data-status={record.status}
-          key={record.recordId}
-          onClick={(event) => onOpenRecordRef(event, record)}
-          title={getRecordRefTooltip(record)}
-        >
-          {record.status === 'deleted' && <span className={styles.recordDeleted}>已删除</span>}
-          {record.title && <span className={styles.recordTitle}>{record.title}</span>}
-          <span className={styles.recordId} onClick={(event) => onCopyRecordId(event, record.recordId)}>
-            {record.recordId}
-          </span>
-        </button>
-      ))}
+      {visibleRecords.map((record) => {
+        const existsInPreview = Boolean(previewRecordMap?.[record.recordId]);
+        return (
+          <button
+            type="button"
+            aria-label={existsInPreview || record.status === 'exists' ? `打开记录 ${record.recordId}` : `查看记录状态 ${record.recordId}`}
+            className={styles.recordRef}
+            data-status={record.status}
+            key={record.recordId}
+            onClick={(event) => onOpenRecordRef(event, record, existsInPreview, viewId, currentDatasheetId, isPreviewing)}
+            title={getRecordRefTooltip(record, existsInPreview)}
+          >
+            {record.status === 'deleted' && <span className={styles.recordDeleted}>已删除</span>}
+            {record.title && <span className={styles.recordTitle}>{record.title}</span>}
+            <span className={styles.recordId}>
+              {record.recordId}
+            </span>
+          </button>
+        );
+      })}
       {hiddenCount > 0 && <span className={styles.recordMore}>+ {hiddenCount} 条</span>}
     </div>
   );
@@ -125,7 +156,9 @@ const TimeMachineRecordRefs: React.FC<{ records: ITimeMachineRecordRef[] }> = ({
 
 export const TimeMachine: React.FC<React.PropsWithChildren<{ onClose: (_visible: boolean) => void }>> = ({ onClose }) => {
   const datasheetId = useAppSelector(Selectors.getActiveDatasheetId)!;
+  const viewId = useAppSelector((state) => state.pageParams.viewId);
   const curDatasheet = useAppSelector((state) => Selectors.getDatasheet(state, datasheetId));
+  const previewSnapshot = useAppSelector((state) => Selectors.getSnapshot(state, PREVIEW_DATASHEET_ID));
   const activeNodePrivate = useAppSelector((state) => Selectors.getActiveNodePrivate(state));
   const [curPreview, setCurPreview] = useState<number | string>();
   const [changesetList, setChangesetList] = useState<IRemoteChangeset[] | null>(null);
@@ -193,6 +226,12 @@ export const TimeMachine: React.FC<React.PropsWithChildren<{ onClose: (_visible:
   }, []);
 
   useEffect(() => {
+    if (!previewSnapshot) {
+      setCurPreview(undefined);
+    }
+  }, [previewSnapshot]);
+
+  useEffect(() => {
     Promise.all(
       uuids.map((id) => {
         return Api.getMemberInfo({ uuid: id });
@@ -235,14 +274,14 @@ export const TimeMachine: React.FC<React.PropsWithChildren<{ onClose: (_visible:
       const revision = `${changesetList[index].revision}`;
       setCurPreview(index);
 
+      const previewSnapshot = cloneDatasheet.snapshot;
+      getRollbackActions(operations, store.getState(), previewSnapshot);
       cloneDatasheet.id = PREVIEW_DATASHEET_ID;
-      cloneDatasheet.snapshot.datasheetId = PREVIEW_DATASHEET_ID;
+      previewSnapshot.datasheetId = PREVIEW_DATASHEET_ID;
       // Proactively setting editable to false bypasses conflict detection and avoids pop-ups that automatically restore modal boxes
       cloneDatasheet.permissions = { ...cloneDatasheet.permissions, editable: false };
       // Identifies the current data as preview data and indicates the version of the preview
       cloneDatasheet.preview = revision;
-      // Proactively setting editable to false bypasses conflict detection and avoids pop-ups that automatically restore modal boxes
-      const previewSnapshot = cloneDatasheet.snapshot;
       try {
         dispatch(StoreActions.receiveDataPack({ snapshot: previewSnapshot, datasheet: cloneDatasheet }, { isPartOfData: false }));
       } catch (error) {
@@ -396,7 +435,13 @@ export const TimeMachine: React.FC<React.PropsWithChildren<{ onClose: (_visible:
                             <span className={styles.operatorName}>{operatorName}</span>
                             <span>{detail.summary}</span>
                           </div>
-                          <TimeMachineRecordRefs records={detail.records} />
+                          <TimeMachineRecordRefs
+                            records={detail.records}
+                            previewRecordMap={index === curPreview ? previewSnapshot?.recordMap : undefined}
+                            viewId={viewId}
+                            currentDatasheetId={datasheetId}
+                            isPreviewing={Boolean(previewSnapshot)}
+                          />
                           <div className={styles.timestamp}>
                             {dayjs.tz(item.createdAt).format(DATEFORMAT)}
                             {getEnvVariables().ENABLE_TIME_MACHINE_ROOLBACK && 
