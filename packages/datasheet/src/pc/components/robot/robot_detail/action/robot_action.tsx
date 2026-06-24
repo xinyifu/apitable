@@ -291,6 +291,19 @@ export const RobotAction = memo((props: IRobotActionProps) => {
   // FIXME: Temporary solution, simple checksum rules should be configurable via json instead of writing code here.
   const validate = (formData: any, errors: any) => {
     // FIXME: No business code should appear here
+    if (actionType && actionType.endpoint === 'sendWecomMsg') {
+      try {
+        const formDataValue = operand2PureValue(formData);
+        const { type, content } = formDataValue || {};
+        const contentByteLimit = type === 'markdown' ? 4096 : 2048;
+        if (new TextEncoder().encode(content || '').length > contentByteLimit) {
+          errors.addError(`企业微信${type === 'markdown' ? 'Markdown' : '文本'}消息内容不能超过 ${contentByteLimit} 字节`);
+        }
+      } catch (error) {
+        console.error('robot form validate error', error);
+      }
+    }
+
     if (actionType && actionType.endpoint === 'sendLarkMsg') {
       try {
         const formDataValue = operand2PureValue(formData);
