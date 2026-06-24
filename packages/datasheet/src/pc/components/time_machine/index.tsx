@@ -44,11 +44,13 @@ import { CloseOutlined, QuestionCircleOutlined } from '@apitable/icons';
 import { Avatar, Modal } from 'pc/components/common';
 import { notify } from 'pc/components/common/notify';
 import { NotifyKey } from 'pc/components/common/notify/notify.interface';
+import { expandRecordIdNavigate } from 'pc/components/expand_record';
 import { Portal } from 'pc/components/portal';
 import { Beta } from 'pc/components/robot/robot_panel/robot_list_head';
 import { useAppDispatch } from 'pc/hooks/use_app_dispatch';
 import { resourceService } from 'pc/resource_service';
 import { useAppSelector } from 'pc/store/react-redux';
+import { copy2clipBoard } from 'pc/utils/dom';
 import { getEnvVariables } from 'pc/utils/env';
 import DataEmptyDark from 'static/icon/common/time_machine_empty_dark.png';
 import DataEmptyLight from 'static/icon/common/time_machine_empty_light.png';
@@ -80,6 +82,22 @@ const getRecordRefTooltip = (record: ITimeMachineRecordRef) => {
   return `${record.title ? `${record.title}\n` : ''}${record.recordId}\n${statusText}，${sourceText}`;
 };
 
+const onOpenRecordRef = (event: React.MouseEvent, record: ITimeMachineRecordRef) => {
+  event.stopPropagation();
+  if (record.status !== 'exists') {
+    message.info(record.status === 'deleted' ? '该记录已删除，可复制 recordId 后查看历史' : '暂时无法定位该记录');
+    return;
+  }
+  expandRecordIdNavigate(record.recordId);
+};
+
+const onCopyRecordId = (event: React.MouseEvent, recordId: string) => {
+  event.stopPropagation();
+  copy2clipBoard(recordId, () => {
+    message.success('已复制 recordId');
+  });
+};
+
 const TimeMachineRecordRefs: React.FC<{ records: ITimeMachineRecordRef[] }> = ({ records }) => {
   if (!records.length) {
     return null;
@@ -89,16 +107,21 @@ const TimeMachineRecordRefs: React.FC<{ records: ITimeMachineRecordRef[] }> = ({
   return (
     <div className={styles.recordRefs}>
       {visibleRecords.map((record) => (
-        <span
+        <button
+          type="button"
+          aria-label={record.status === 'exists' ? `打开记录 ${record.recordId}` : `查看记录状态 ${record.recordId}`}
           className={styles.recordRef}
           data-status={record.status}
           key={record.recordId}
+          onClick={(event) => onOpenRecordRef(event, record)}
           title={getRecordRefTooltip(record)}
         >
           {record.status === 'deleted' && <span className={styles.recordDeleted}>已删除</span>}
           {record.title && <span className={styles.recordTitle}>{record.title}</span>}
-          <span className={styles.recordId}>{record.recordId}</span>
-        </span>
+          <span className={styles.recordId} onClick={(event) => onCopyRecordId(event, record.recordId)}>
+            {record.recordId}
+          </span>
+        </button>
       ))}
       {hiddenCount > 0 && <span className={styles.recordMore}>+ {hiddenCount} 条</span>}
     </div>
@@ -364,7 +387,7 @@ export const TimeMachine: React.FC<React.PropsWithChildren<{ onClose: (_visible:
                   return (
                     <section
                       className={styles.listItem}
-                      key={`${item.messageId}-${item.revision}`}
+                      key={`${item.messageId}-${item.revision}-${index}`}
                       data-active={index === curPreview}
                       onClick={() => {
                         onPreviewClick(index);
