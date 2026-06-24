@@ -69,17 +69,12 @@ const DATEFORMAT = 'YYYY-MM-DD HH:mm:ss';
 const MAX_VISIBLE_RECORD_REFS = 3;
 
 const getRecordRefTooltip = (record: ITimeMachineRecordRef) => {
-  const sourceText = {
-    current: '标题来自当前数据',
-    history: '标题来自历史数据',
-    none: '未识别到标题',
-  }[record.titleSource];
   const statusText = {
-    exists: '当前存在',
-    deleted: '已删除',
-    unknown: '状态未知',
+    exists: '点击标签打开记录，点击 recordId 复制',
+    deleted: '记录已删除，点击 recordId 复制',
+    unknown: '暂时无法定位该记录，点击 recordId 复制',
   }[record.status];
-  return `${record.title ? `${record.title}\n` : ''}${record.recordId}\n${statusText}，${sourceText}`;
+  return `${record.title ? `${record.title}\n` : ''}${record.recordId}\n${statusText}`;
 };
 
 const onOpenRecordRef = (event: React.MouseEvent, record: ITimeMachineRecordRef) => {
@@ -376,12 +371,13 @@ export const TimeMachine: React.FC<React.PropsWithChildren<{ onClose: (_visible:
               ) : (
                 changesetList.map((item, index) => {
                   const memberInfo = uuidMap && uuidMap[item.userId!];
-                  const title =
+                  const operatorTitle = memberInfo?.memberName || memberInfo?.nickName || item.userId || '未知用户';
+                  const operatorName =
                     getSocialWecomUnitName?.({
-                      name: memberInfo?.memberName,
+                      name: memberInfo?.memberName || memberInfo?.nickName,
                       isModified: memberInfo?.isMemberNameModified,
                       spaceInfo,
-                    }) || '';
+                    }) || operatorTitle;
                   const ops = item.operations.filter((op) => !op.cmd.startsWith('System'));
                   const detail = getOperationDetail(ops, curDatasheet?.snapshot);
                   return (
@@ -394,10 +390,10 @@ export const TimeMachine: React.FC<React.PropsWithChildren<{ onClose: (_visible:
                       }}
                     >
                       <div style={{ display: 'flex', gap: '8px' }}>
-                        <Avatar id={item.userId || ''} title={typeof title === 'string' ? title : ''} size={24} src={memberInfo?.avatar} />
+                        <Avatar id={item.userId || ''} title={operatorTitle} size={24} src={memberInfo?.avatar} />
                         <div>
                           <div className={styles.title}>
-                            <span style={{ paddingRight: '4px' }}>{title}</span>
+                            <span className={styles.operatorName}>{operatorName}</span>
                             <span>{detail.summary}</span>
                           </div>
                           <TimeMachineRecordRefs records={detail.records} />

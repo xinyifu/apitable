@@ -149,6 +149,7 @@ interface ITimeMachineOperationDetail {
 - 数字、布尔值转字符串。
 - 文本 segment 数组拼接 `text`。
 - 其他复杂类型先显示空标题，避免误导。
+- `titleSource` 只用于内部判断，不在前端提示中展示“标题来自当前/历史数据”。
 
 ### 前端展示
 
@@ -262,7 +263,7 @@ TIME_MACHINE_VISIBLE=true
 
 在第一阶段基础上继续验收：
 
-- 点击当前存在的记录 chip，会打开该记录详情路由。
+- 点击当前存在的记录 chip，会打开该记录详情路由，即 URL 追加该行 `recordId` 并弹出记录详情面板。
 - 点击 `recordId` 文本，只复制 `recordId`，不触发整条操作记录的历史预览。
 - 复制成功后显示“已复制 recordId”提示。
 - 点击已删除记录 chip 时不打开详情，显示记录已删除的反馈提示。
