@@ -575,6 +575,7 @@ export const setLoadingRecord = (payload: { recordIds: string[]; loading: boolea
 export const setDatasheetConnected = (datasheetId: string) => {
   return {
     type: DATASHEET_CONNECTED,
+    payload: true,
     datasheetId,
   };
 };

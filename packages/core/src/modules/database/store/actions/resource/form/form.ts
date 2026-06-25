@@ -163,6 +163,7 @@ export function receiveFormData({
 export const setFormConnected = (formId: string) => {
   return {
     type: actions.FORM_CONNECTED,
+    payload: true,
     formId,
   };
 };

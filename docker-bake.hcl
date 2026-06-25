@@ -1,5 +1,5 @@
 group "default" {
-  targets = ["backend-server", "room-server", "web-server", "init-db", "openresty"]
+  targets = ["backend-server", "room-server", "web-server", "init-db", "init-selfhost-overrides", "openresty"]
 }
 
 variable "IMAGE_REGISTRY" {
@@ -63,6 +63,16 @@ target "init-db" {
   }
   platforms = ["linux/amd64", "linux/arm64"]
   tags = ["${IMAGE_REGISTRY}/apitable/init-db:latest", "${IMAGE_REGISTRY}/apitable/init-db:${IMAGE_TAG}"]
+}
+
+target "init-selfhost-overrides" {
+  context = "./init-selfhost-overrides"
+  dockerfile = "Dockerfile"
+  args = {
+    SEMVER_FULL = SEMVER_FULL
+  }
+  platforms = ["linux/amd64", "linux/arm64"]
+  tags = ["${IMAGE_REGISTRY}/apitable/init-selfhost-overrides:latest", "${IMAGE_REGISTRY}/apitable/init-selfhost-overrides:${IMAGE_TAG}"]
 }
 
 target "openresty" {
