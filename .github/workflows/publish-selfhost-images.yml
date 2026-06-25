@@ -25,23 +25,12 @@ env:
   UPSTREAM_IMAGE_TAG: latest
 
 jobs:
-  publish:
-    name: Publish self-host images
+  resolve:
+    name: Resolve release metadata
     runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.meta.outputs.image_tag }}
     steps:
-      - name: Fetch Sources
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Login to GHCR
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Resolve image tag
         id: meta
         shell: bash
@@ -61,62 +50,120 @@ jobs:
 
           echo "image_tag=${image_tag}" >> "${GITHUB_OUTPUT}"
 
-      - name: Build and push fork images
-        env:
-          IMAGE_TAG: ${{ steps.meta.outputs.image_tag }}
-          SEMVER_FULL: ${{ steps.meta.outputs.image_tag }}
-          CACHE_REGISTRY: ghcr.io/xinyifu/apitable/build-cache
-        run: |
-          docker buildx bake --push \
-            --set "*.platform=${PLATFORM}" \
-            --set "backend-server.cache-from=type=registry,ref=${CACHE_REGISTRY}:backend-server" \
-            --set "backend-server.cache-to=type=registry,ref=${CACHE_REGISTRY}:backend-server,mode=max" \
-            --set "backend-server.tags=${IMAGE_REGISTRY}/apitable/backend-server:${IMAGE_TAG}" \
-            --set "room-server.cache-from=type=registry,ref=${CACHE_REGISTRY}:room-server" \
-            --set "room-server.cache-to=type=registry,ref=${CACHE_REGISTRY}:room-server,mode=max" \
-            --set "room-server.tags=${IMAGE_REGISTRY}/apitable/room-server:${IMAGE_TAG}" \
-            --set "web-server.cache-from=type=registry,ref=${CACHE_REGISTRY}:web-server" \
-            --set "web-server.cache-to=type=registry,ref=${CACHE_REGISTRY}:web-server,mode=max" \
-            --set "web-server.tags=${IMAGE_REGISTRY}/apitable/web-server:${IMAGE_TAG}" \
-            --set "init-db.cache-from=type=registry,ref=${CACHE_REGISTRY}:init-db" \
-            --set "init-db.cache-to=type=registry,ref=${CACHE_REGISTRY}:init-db,mode=max" \
-            --set "init-db.tags=${IMAGE_REGISTRY}/apitable/init-db:${IMAGE_TAG}" \
-            --set "init-selfhost-overrides.cache-from=type=registry,ref=${CACHE_REGISTRY}:init-selfhost-overrides" \
-            --set "init-selfhost-overrides.cache-to=type=registry,ref=${CACHE_REGISTRY}:init-selfhost-overrides,mode=max" \
-            --set "init-selfhost-overrides.tags=${IMAGE_REGISTRY}/apitable/init-selfhost-overrides:${IMAGE_TAG}" \
-            --set "openresty.cache-from=type=registry,ref=${CACHE_REGISTRY}:openresty" \
-            --set "openresty.cache-to=type=registry,ref=${CACHE_REGISTRY}:openresty,mode=max" \
-            --set "openresty.tags=${IMAGE_REGISTRY}/apitable/openresty:${IMAGE_TAG}" \
-            backend-server room-server web-server init-db init-selfhost-overrides openresty
+  build_fork_image:
+    name: Build fork image (${{ matrix.image }})
+    needs: resolve
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: backend-server
+            image: backend-server
+          - target: room-server
+            image: room-server
+          - target: web-server
+            image: web-server
+          - target: init-db
+            image: init-db
+          - target: init-selfhost-overrides
+            image: init-selfhost-overrides
+          - target: openresty
+            image: openresty
+    steps:
+      - name: Fetch sources
+        uses: actions/checkout@v5
 
-      - name: Mirror upstream runtime images
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push ${{ matrix.image }}
         env:
-          IMAGE_TAG: ${{ steps.meta.outputs.image_tag }}
+          IMAGE_TAG: ${{ needs.resolve.outputs.image_tag }}
+          SEMVER_FULL: ${{ needs.resolve.outputs.image_tag }}
+          CACHE_REGISTRY: ghcr.io/xinyifu/apitable/build-cache
+          BAKE_TARGET: ${{ matrix.target }}
+          IMAGE_NAME: ${{ matrix.image }}
         shell: bash
         run: |
           set -euo pipefail
 
-          images=(
-            databus-server
-            imageproxy-server
-            init-appdata
-          )
+          docker buildx bake --push \
+            --set "${BAKE_TARGET}.platform=${PLATFORM}" \
+            --set "${BAKE_TARGET}.cache-from=type=registry,ref=${CACHE_REGISTRY}:${BAKE_TARGET}" \
+            --set "${BAKE_TARGET}.cache-to=type=registry,ref=${CACHE_REGISTRY}:${BAKE_TARGET},mode=max" \
+            --set "${BAKE_TARGET}.tags=${IMAGE_REGISTRY}/apitable/${IMAGE_NAME}:${IMAGE_TAG}" \
+            "${BAKE_TARGET}"
 
-          for image in "${images[@]}"; do
-            source="docker.io/apitable/${image}:${UPSTREAM_IMAGE_TAG}"
-            target="${IMAGE_REGISTRY}/apitable/${image}:${IMAGE_TAG}"
+  mirror_upstream_image:
+    name: Mirror upstream image (${{ matrix.image }})
+    needs: resolve
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - databus-server
+          - imageproxy-server
+          - init-appdata
+    steps:
+      - name: Login to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-            docker pull --platform "${PLATFORM}" "${source}"
-            docker tag "${source}" "${target}"
-            docker push "${target}"
-          done
-
-      - name: Print Synology image settings
+      - name: Pull, retag, and push ${{ matrix.image }}
         env:
-          IMAGE_TAG: ${{ steps.meta.outputs.image_tag }}
+          IMAGE_TAG: ${{ needs.resolve.outputs.image_tag }}
+          IMAGE_NAME: ${{ matrix.image }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          source="docker.io/apitable/${IMAGE_NAME}:${UPSTREAM_IMAGE_TAG}"
+          target="${IMAGE_REGISTRY}/apitable/${IMAGE_NAME}:${IMAGE_TAG}"
+
+          docker pull --platform "${PLATFORM}" "${source}"
+          docker tag "${source}" "${target}"
+          docker push "${target}"
+
+  publish_summary:
+    name: Publish summary
+    needs:
+      - resolve
+      - build_fork_image
+      - mirror_upstream_image
+    runs-on: ubuntu-latest
+    if: ${{ always() }}
+    steps:
+      - name: Write self-host release summary
+        env:
+          IMAGE_TAG: ${{ needs.resolve.outputs.image_tag }}
+          BUILD_RESULT: ${{ needs.build_fork_image.result }}
+          MIRROR_RESULT: ${{ needs.mirror_upstream_image.result }}
+        shell: bash
         run: |
           cat <<EOF >> "${GITHUB_STEP_SUMMARY}"
-          ## Synology .env image settings
+          ## Self-host release images
+
+          | Item | Value |
+          | --- | --- |
+          | Image tag | \`${IMAGE_TAG}\` |
+          | Registry | \`ghcr.io/xinyifu\` |
+          | Platform | \`${PLATFORM}\` |
+          | Fork image build | \`${BUILD_RESULT}\` |
+          | Upstream image mirror | \`${MIRROR_RESULT}\` |
+
+          ## Deployment .env image settings
 
           \`\`\`env
           IMAGE_REGISTRY=ghcr.io/xinyifu
@@ -139,4 +186,22 @@ jobs:
           CHANGE_SPACE_ADMIN_VISIBLE=true
           TIME_MACHINE_VISIBLE=true
           \`\`\`
+
+          ## Upgrade command reference
+
+          \`\`\`powershell
+          docker compose --env-file .env -f docker-compose.yaml pull
+          docker compose --env-file .env -f docker-compose.yaml down
+          docker compose --env-file .env -f docker-compose.yaml up -d
+          docker compose --env-file .env -f docker-compose.yaml ps
+          \`\`\`
+
+          ## Published image groups
+
+          - Fork-built images: \`backend-server\`, \`room-server\`, \`web-server\`, \`init-db\`, \`init-selfhost-overrides\`, \`openresty\`
+          - Mirrored upstream runtime images: \`databus-server\`, \`imageproxy-server\`, \`init-appdata\`
           EOF
+
+      - name: Fail summary when publish failed
+        if: ${{ needs.build_fork_image.result != 'success' || needs.mirror_upstream_image.result != 'success' }}
+        run: exit 1
