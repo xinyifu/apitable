@@ -15,6 +15,10 @@ permissions:
   contents: read
   packages: write
 
+concurrency:
+  group: publish-selfhost-images
+  cancel-in-progress: false
+
 env:
   IMAGE_REGISTRY: ghcr.io/xinyifu
   PLATFORM: linux/amd64
@@ -61,13 +65,24 @@ jobs:
         env:
           IMAGE_TAG: ${{ steps.meta.outputs.image_tag }}
           SEMVER_FULL: ${{ steps.meta.outputs.image_tag }}
+          CACHE_REGISTRY: ghcr.io/xinyifu/apitable/build-cache
         run: |
           docker buildx bake --push \
             --set "*.platform=${PLATFORM}" \
+            --set "backend-server.cache-from=type=registry,ref=${CACHE_REGISTRY}:backend-server" \
+            --set "backend-server.cache-to=type=registry,ref=${CACHE_REGISTRY}:backend-server,mode=max" \
             --set "backend-server.tags=${IMAGE_REGISTRY}/apitable/backend-server:${IMAGE_TAG}" \
+            --set "room-server.cache-from=type=registry,ref=${CACHE_REGISTRY}:room-server" \
+            --set "room-server.cache-to=type=registry,ref=${CACHE_REGISTRY}:room-server,mode=max" \
             --set "room-server.tags=${IMAGE_REGISTRY}/apitable/room-server:${IMAGE_TAG}" \
+            --set "web-server.cache-from=type=registry,ref=${CACHE_REGISTRY}:web-server" \
+            --set "web-server.cache-to=type=registry,ref=${CACHE_REGISTRY}:web-server,mode=max" \
             --set "web-server.tags=${IMAGE_REGISTRY}/apitable/web-server:${IMAGE_TAG}" \
+            --set "init-db.cache-from=type=registry,ref=${CACHE_REGISTRY}:init-db" \
+            --set "init-db.cache-to=type=registry,ref=${CACHE_REGISTRY}:init-db,mode=max" \
             --set "init-db.tags=${IMAGE_REGISTRY}/apitable/init-db:${IMAGE_TAG}" \
+            --set "openresty.cache-from=type=registry,ref=${CACHE_REGISTRY}:openresty" \
+            --set "openresty.cache-to=type=registry,ref=${CACHE_REGISTRY}:openresty,mode=max" \
             --set "openresty.tags=${IMAGE_REGISTRY}/apitable/openresty:${IMAGE_TAG}" \
             backend-server room-server web-server init-db openresty
 
@@ -115,5 +130,9 @@ jobs:
           FILE_PERMISSION_VISIBLE=true
           SPACE_PERMISSION_OVERVIEW_VISIBLE=true
           SPACE_ROLE_VISIBLE=true
+          CONTACTS_MODAL_BULK_IMPORT_VISIBLE=true
+          REGENERATE_API_TOKEN_VISIBLE=true
+          CHANGE_SPACE_ADMIN_VISIBLE=true
+          TIME_MACHINE_VISIBLE=true
           \`\`\`
           EOF
