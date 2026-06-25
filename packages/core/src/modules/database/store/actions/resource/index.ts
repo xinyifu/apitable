@@ -133,23 +133,26 @@ export const updateRevision = (revision: number, resourceId: string, resourceTyp
   }
 };
 
-export const setResourceConnect = (resourceId: string, resourceType: ResourceType): ISetResourceConnected => {
+export const setResourceConnect = (resourceId: string, resourceType: ResourceType, status = true): ISetResourceConnected => {
   switch (resourceType) {
     case ResourceType.Dashboard: {
       return {
         type: DASHBOARD_CONNECTED,
+        payload: status,
         dashboardId: resourceId,
       } as ISetResourceConnected;
     }
     case ResourceType.Form: {
       return {
         type: FORM_CONNECTED,
+        payload: status,
         formId: resourceId,
       } as ISetResourceConnected;
     }
     case ResourceType.Mirror: {
       return {
         type: MIRROR_CONNECTED,
+        payload: status,
         mirrorId: resourceId,
       } as ISetResourceConnected;
     }
@@ -157,6 +160,7 @@ export const setResourceConnect = (resourceId: string, resourceType: ResourceTyp
     default: {
       return {
         type: DATASHEET_CONNECTED,
+        payload: status,
         datasheetId: resourceId,
       } as ISetResourceConnected;
     }

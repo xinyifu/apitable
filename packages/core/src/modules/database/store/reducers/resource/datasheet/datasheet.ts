@@ -232,7 +232,7 @@ export const datasheetPack = combineReducers<IDatasheetPack>({
   },
   connected: (state = false, action) => {
     if (action.type === actions.DATASHEET_CONNECTED) {
-      return true;
+      return action.payload;
     }
     return state;
   },

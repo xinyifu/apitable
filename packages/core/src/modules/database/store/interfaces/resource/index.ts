@@ -118,21 +118,25 @@ export type IUpdateRevision = IUpdateRevisionForDashboard | IUpdateRevisionForDa
 
 interface ISetDatasheetConnected {
   type: typeof DATASHEET_CONNECTED;
+  payload: boolean;
   datasheetId: string;
 }
 
 interface ISetDashboardConnected {
   type: typeof DASHBOARD_CONNECTED;
+  payload: boolean;
   dashboardId: string;
 }
 
 interface ISetFormConnected {
   type: typeof FORM_CONNECTED;
+  payload: boolean;
   formId: string;
 }
 
 interface ISetMirrorConnected {
   type: typeof MIRROR_CONNECTED;
+  payload: boolean;
   mirrorId: string;
 }
 

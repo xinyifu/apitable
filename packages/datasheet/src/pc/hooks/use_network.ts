@@ -59,12 +59,12 @@ export const useNetwork = (automatic = true, resourceId: string, resourceType: R
       return;
     }
 
-    if (!connected) {
-      setStatus(Network.Offline);
-      return;
-    }
     if (IOConnecting) {
       setStatus(Network.Loading);
+      return;
+    }
+    if (!connected) {
+      setStatus(Network.Offline);
       return;
     }
     if (syncing) {

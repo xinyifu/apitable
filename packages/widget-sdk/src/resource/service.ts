@@ -47,6 +47,7 @@ import { ClientDataStorageProvider } from './databus/data_storage_provider';
 import { IResourceService, IServiceError } from './interface';
 
 const RECONNECT_DELAY = 2000;
+const MAX_RECONNECT_DELAY = 15 * 1000;
 
 const clientWatchedEvents = [
   OPEventNameEnums.CellUpdated,
@@ -75,6 +76,8 @@ export class ResourceService implements IResourceService {
   roomIOClear = true;
   roomLastSendTime?: number;
   firstRoomInit = true;
+  private reconnectTimer?: number;
+  private reconnectAttempt = 0;
   private database!: databus.Database;
   private databus: databus.DataBus;
   currentResource: databus.Datasheet | undefined;
@@ -131,6 +134,7 @@ export class ResourceService implements IResourceService {
       });
 
     this.socket && this.socket.removeAllListeners();
+    this.clearReconnectTimer();
     this.socket && this.socket.close();
     this.unBindBeforeUnload();
     this.store.dispatch(StoreActions.setConnected(false));
@@ -169,6 +173,7 @@ export class ResourceService implements IResourceService {
 
     this.createUndoManager(to);
     allowSwitchRoom && (await this.roomService.init(this.firstRoomInit));
+    this.store.dispatch(StoreActions.setReconnecting(false));
     this.firstRoomInit = false;
   }
 
@@ -315,29 +320,21 @@ export class ResourceService implements IResourceService {
       // Player.doTrigger(Events.app_error_logger, { error: new Error('socket disconnect reason: ' + reason) });
 
       this.store.dispatch(StoreActions.setReconnecting(true));
-      this.roomService.setConnected(false);
-      let count = 1;
+      this.markRoomDisconnected();
 
-      const interval = window.setInterval(async () => {
-        if (socket.connected) {
-          clearInterval(interval);
-          await this.roomService.watch();
-          this.roomService.setConnected(true);
-          this.store.dispatch(StoreActions.setReconnecting(false));
-          console.log('connected');
-          return;
-        }
-        if (reason === 'io server disconnect') {
-          // the disconnection was initiated by the server, you need to reconnect manually
-          socket.connect();
-          console.warn('! ' + `room attempt to reconnect ${count++} ...`);
-        }
-      }, RECONNECT_DELAY);
+      if (reason === 'io server disconnect') {
+        // The disconnection was initiated by the server, so reconnect manually.
+        this.scheduleReconnect();
+      }
     });
 
     socket.on('connect', () => {
       this.reportSocketError = true;
+      this.clearReconnectTimer();
       this.store.dispatch(StoreActions.setConnected(true));
+      if (this.store.getState().space.reconnecting && this.roomService) {
+        void this.safeWatch();
+      }
     });
 
     socket.on('connect_error', () => {
@@ -348,6 +345,70 @@ export class ResourceService implements IResourceService {
       // Player.doTrigger(Events.app_error_logger, { error: new Error('socket has happened some error: ' + JSON.stringify(error)) });
     });
     return socket;
+  }
+
+  private markRoomDisconnected() {
+    if (!this.roomService) {
+      return;
+    }
+    this.roomService.setConnected(false);
+    const collaEngine = this.roomService.getCollaEngine();
+    if (!collaEngine) {
+      return;
+    }
+    this.store.dispatch(StoreActions.setResourceConnect(this.roomService.roomId, collaEngine.resourceType, false));
+    this.store.dispatch(StoreActions.changeResourceSyncingStatus(this.roomService.roomId, collaEngine.resourceType, false));
+  }
+
+  private clearReconnectTimer() {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = undefined;
+    }
+    this.reconnectAttempt = 0;
+  }
+
+  private scheduleReconnect() {
+    if (this.reconnectTimer || this.socket.connected) {
+      return;
+    }
+
+    const attempt = ++this.reconnectAttempt;
+    const baseDelay = Math.min(RECONNECT_DELAY * Math.pow(2, attempt - 1), MAX_RECONNECT_DELAY);
+    const jitter = 0.8 + Math.random() * 0.4;
+    const delay = Math.round(baseDelay * jitter);
+
+    this.reconnectTimer = window.setTimeout(() => {
+      this.reconnectTimer = undefined;
+      if (this.socket.connected) {
+        this.clearReconnectTimer();
+        return;
+      }
+
+      this.socket.connect();
+      console.warn('! ' + `room attempt to reconnect ${attempt} ...`);
+      this.scheduleReconnect();
+    }, delay);
+  }
+
+  private async safeWatch() {
+    const roomSnapshot = this.roomService;
+    if (!roomSnapshot) {
+      return;
+    }
+
+    try {
+      const watched = await roomSnapshot.watch();
+      if (this.roomService === roomSnapshot && watched) {
+        this.store.dispatch(StoreActions.setReconnecting(false));
+        console.log('connected');
+      }
+    } catch (error) {
+      if (this.roomService === roomSnapshot) {
+        this.store.dispatch(StoreActions.setReconnecting(false));
+        console.error('room watch failed after reconnect', error);
+      }
+    }
   }
 
   getCollaEngine(resourceId: string) {
