@@ -81,10 +81,13 @@ jobs:
             --set "init-db.cache-from=type=registry,ref=${CACHE_REGISTRY}:init-db" \
             --set "init-db.cache-to=type=registry,ref=${CACHE_REGISTRY}:init-db,mode=max" \
             --set "init-db.tags=${IMAGE_REGISTRY}/apitable/init-db:${IMAGE_TAG}" \
+            --set "init-selfhost-overrides.cache-from=type=registry,ref=${CACHE_REGISTRY}:init-selfhost-overrides" \
+            --set "init-selfhost-overrides.cache-to=type=registry,ref=${CACHE_REGISTRY}:init-selfhost-overrides,mode=max" \
+            --set "init-selfhost-overrides.tags=${IMAGE_REGISTRY}/apitable/init-selfhost-overrides:${IMAGE_TAG}" \
             --set "openresty.cache-from=type=registry,ref=${CACHE_REGISTRY}:openresty" \
             --set "openresty.cache-to=type=registry,ref=${CACHE_REGISTRY}:openresty,mode=max" \
             --set "openresty.tags=${IMAGE_REGISTRY}/apitable/openresty:${IMAGE_TAG}" \
-            backend-server room-server web-server init-db openresty
+            backend-server room-server web-server init-db init-selfhost-overrides openresty
 
       - name: Mirror upstream runtime images
         env:
@@ -120,6 +123,7 @@ jobs:
           IMAGE_BACKEND_SERVER=apitable/backend-server:${IMAGE_TAG}
           IMAGE_GATEWAY=apitable/openresty:${IMAGE_TAG}
           IMAGE_INIT_DB=apitable/init-db:${IMAGE_TAG}
+          IMAGE_SELFHOST_OVERRIDES=apitable/init-selfhost-overrides:${IMAGE_TAG}
           IMAGE_ROOM_SERVER=apitable/room-server:${IMAGE_TAG}
           IMAGE_WEB_SERVER=apitable/web-server:${IMAGE_TAG}
           IMAGE_DATABUS_SERVER=apitable/databus-server:${IMAGE_TAG}

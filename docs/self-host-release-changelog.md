@@ -14,6 +14,10 @@
 
 ## 未发布
 
+- 暂无。
+
+## selfhost-20260625-2
+
 ### 新增 init-selfhost-overrides
 
 目的：
@@ -61,6 +65,33 @@ IMAGE_SELFHOST_OVERRIDES=apitable/init-selfhost-overrides:<selfhost-tag>
 - 构建并推送 `init-selfhost-overrides`。
 - 发布摘要输出 `IMAGE_SELFHOST_OVERRIDES`。
 - 正式 `.env` 模板加入 `IMAGE_SELFHOST_OVERRIDES`。
+
+### 修复 DATASHEET_CONNECTED API 500
+
+问题：
+
+- room-server 的部分 API 路径仍会派发旧的 `setDatasheetConnected(datasheetId)`。
+- 旧 action 没有 `payload`，而新版 `connected` reducer 读取 `action.payload`。
+- Redux 因 `connected` reducer 返回 `undefined` 抛出 500。
+
+修复：
+
+- `setDatasheetConnected` 和 `setFormConnected` 补齐 `payload: true`。
+- datasheet/dashboard/form/mirror 的 `connected` reducer 对缺失 payload 兜底为 `true`，保留显式 `false` 语义。
+
+镜像 tag：
+
+```env
+IMAGE_BACKEND_SERVER=apitable/backend-server:selfhost-20260625-2
+IMAGE_GATEWAY=apitable/openresty:selfhost-20260625-2
+IMAGE_INIT_DB=apitable/init-db:selfhost-20260625-2
+IMAGE_SELFHOST_OVERRIDES=apitable/init-selfhost-overrides:selfhost-20260625-2
+IMAGE_ROOM_SERVER=apitable/room-server:selfhost-20260625-2
+IMAGE_WEB_SERVER=apitable/web-server:selfhost-20260625-2
+IMAGE_DATABUS_SERVER=apitable/databus-server:selfhost-20260625-2
+IMAGE_IMAGEPROXY_SERVER=apitable/imageproxy-server:selfhost-20260625-2
+IMAGE_INIT_APPDATA=apitable/init-appdata:selfhost-20260625-2
+```
 
 ## selfhost-20260625-1
 
