@@ -163,29 +163,23 @@ jobs:
           | Fork image build | \`${BUILD_RESULT}\` |
           | Upstream image mirror | \`${MIRROR_RESULT}\` |
 
-          ## Deployment .env image settings
+          ## Published image groups
 
-          \`\`\`env
-          IMAGE_REGISTRY=ghcr.io/xinyifu
-          IMAGE_BACKEND_SERVER=apitable/backend-server:${IMAGE_TAG}
-          IMAGE_GATEWAY=apitable/openresty:${IMAGE_TAG}
-          IMAGE_INIT_DB=apitable/init-db:${IMAGE_TAG}
-          IMAGE_SELFHOST_OVERRIDES=apitable/init-selfhost-overrides:${IMAGE_TAG}
-          IMAGE_ROOM_SERVER=apitable/room-server:${IMAGE_TAG}
-          IMAGE_WEB_SERVER=apitable/web-server:${IMAGE_TAG}
-          IMAGE_DATABUS_SERVER=apitable/databus-server:${IMAGE_TAG}
-          IMAGE_IMAGEPROXY_SERVER=apitable/imageproxy-server:${IMAGE_TAG}
-          IMAGE_INIT_APPDATA=apitable/init-appdata:${IMAGE_TAG}
+          | Image | Source |
+          | --- | --- |
+          | \`backend-server\` | fork build |
+          | \`room-server\` | fork build |
+          | \`web-server\` | fork build |
+          | \`init-db\` | fork build |
+          | \`init-selfhost-overrides\` | fork build |
+          | \`openresty\` | fork build |
+          | \`databus-server\` | upstream mirror |
+          | \`imageproxy-server\` | upstream mirror |
+          | \`init-appdata\` | upstream mirror |
 
-          FIELD_PERMISSION_VISIBLE=true
-          FILE_PERMISSION_VISIBLE=true
-          SPACE_PERMISSION_OVERVIEW_VISIBLE=true
-          SPACE_ROLE_VISIBLE=true
-          CONTACTS_MODAL_BULK_IMPORT_VISIBLE=true
-          REGENERATE_API_TOKEN_VISIBLE=true
-          CHANGE_SPACE_ADMIN_VISIBLE=true
-          TIME_MACHINE_VISIBLE=true
-          \`\`\`
+          ## Deployment note
+
+          Use the matching self-host config for this tag. This release requires \`init-selfhost-overrides\` to run after \`init-appdata\`.
 
           ## Upgrade command reference
 
@@ -196,10 +190,6 @@ jobs:
           docker compose --env-file .env -f docker-compose.yaml ps
           \`\`\`
 
-          ## Published image groups
-
-          - Fork-built images: \`backend-server\`, \`room-server\`, \`web-server\`, \`init-db\`, \`init-selfhost-overrides\`, \`openresty\`
-          - Mirrored upstream runtime images: \`databus-server\`, \`imageproxy-server\`, \`init-appdata\`
           EOF
 
       - name: Fail summary when publish failed
