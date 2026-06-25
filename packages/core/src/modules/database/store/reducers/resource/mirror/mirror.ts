@@ -199,7 +199,7 @@ const mirrorPack = combineReducers<IMirrorPack>({
   },
   connected: (state = false, action) => {
     if (action.type === ActionConstants.MIRROR_CONNECTED) {
-      return action.payload;
+      return action.payload ?? true;
     }
     return state;
   },
