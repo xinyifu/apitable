@@ -114,11 +114,21 @@ export class IO {
     this.abort = true;
     clearInterval(this.watchRoomRetryInterval);
     this.watchRoomRetryInterval = undefined;
+    this.offAll();
 
     return new Promise((resolve) => {
+      if (!this.socket.connected) {
+        resolve(undefined);
+        return;
+      }
+
+      const timer = setTimeout(() => {
+        resolve(undefined);
+      }, 3 * 1000);
+
       this.socket.emit(SyncRequestTypes.LEAVE_ROOM, { roomId: this.roomId }, (msg: any) => {
+        clearTimeout(timer);
         console.log('unwatch: ', this.roomId, 'msg:', msg);
-        this.offAll();
         resolve(msg);
       });
     });

@@ -87,6 +87,9 @@ export class RoomService {
   private io = new IO(this.roomId, this.socket);
   private sendingWatcherTimer?: any;
   private connected = false;
+  private watchingPromise?: Promise<boolean>;
+  private disposed = false;
+  private watchEpoch = 0;
   backupDB: ILocalForage;
 
   /**
@@ -306,7 +309,31 @@ export class RoomService {
    * @returns
    */
   @errorCapture<RoomService>()
-  async watch() {
+  async watch(): Promise<boolean> {
+    if (this.disposed) {
+      return false;
+    }
+    if (this.watchingPromise) {
+      return this.watchingPromise;
+    }
+
+    const epoch = this.watchEpoch;
+    const promise = this.doWatch(epoch);
+    this.watchingPromise = promise;
+    const clearWatchingPromise = () => {
+      if (this.watchingPromise === promise) {
+        this.watchingPromise = undefined;
+      }
+    };
+    promise.then(clearWatchingPromise, clearWatchingPromise);
+    return promise;
+  }
+
+  private isWatchStale(epoch: number) {
+    return this.disposed || this.watchEpoch !== epoch;
+  }
+
+  private async doWatch(epoch: number): Promise<boolean> {
     const state = this.store.getState();
     const shareId = state.pageParams.shareId;
     const embedId = state.pageParams.embedId;
@@ -314,23 +341,29 @@ export class RoomService {
       throw new EnhanceError(e);
     });
 
-    this.setConnected(true);
-    if (!watchResponse) {
-      return;
+    if (!watchResponse || this.isWatchStale(epoch)) {
+      return false;
     }
     const { resourceRevisions, collaborators } = watchResponse.data!;
     // console.log('resourceRevisions:', resourceRevisions);
     const collaEngine = this.collaEngineMap.get(this.roomId);
     if (!collaEngine) {
-      return;
+      return false;
     }
     await this.checkVersion(resourceRevisions);
+    if (this.isWatchStale(epoch)) {
+      return false;
+    }
     const resourceType = collaEngine.resourceType;
+    this.setConnected(true);
     this.store.dispatch(roomInfoSync(this.roomId, resourceType, collaborators || []));
     this.store.dispatch(setResourceConnect(this.roomId, resourceType));
     this.loadFieldPermissionMap();
     this.bindSocketMessage();
     this.setSendingWatcher();
+    this.event.setRoomIOClear(true);
+    this.nextSend();
+    return true;
   }
 
   /**
@@ -405,15 +438,22 @@ export class RoomService {
    * 2. Clear data sending status monitoring timer
    */
   async leaveRoom() {
+    this.disposed = true;
+    this.watchEpoch++;
     this.setConnected(false);
+    const collaEngine = this.collaEngineMap.get(this.roomId);
+    if (collaEngine) {
+      this.store.dispatch(setResourceConnect(this.roomId, collaEngine.resourceType, false));
+      this.store.dispatch(changeResourceSyncingStatus(this.roomId, collaEngine.resourceType, false));
+    }
     /**
      * After switching the space, the socket of the previous space is closed, so the event of leave_room will not be triggered, so
      * You can check the connection status of the item socket here
      */
-    if (this.socket.connected) {
+    try {
       await this.unwatch();
-    } else {
-      console.log("socket has been closed, room needn't leave again");
+    } catch (e) {
+      console.error('leave room failed', e);
     }
     this.clearSendingWatcher();
     return this.collaEngineMap;
@@ -515,13 +555,15 @@ export class RoomService {
     // mark the send queue waiting to return
     this.event.setRoomIOClear(false);
     this.event.setRoomLastSendTime();
+    const collaEngine = this.collaEngineMap.get(this.roomId);
+    const resourceType = collaEngine?.resourceType!;
     if (!this.connected) {
       console.error("room has been destroy,can't send anything");
+      this.event.setRoomIOClear(true);
+      collaEngine && this.store.dispatch(changeResourceSyncingStatus(this.roomId, resourceType, false));
       return;
     }
     // Load after 500ms, to prevent the icon from flashing when the network is fast
-    const collaEngine = this.collaEngineMap.get(this.roomId);
-    const resourceType = collaEngine?.resourceType!;
     const timer = setTimeout(() => {
       this.store.dispatch(changeResourceSyncingStatus(this.roomId, resourceType, true));
     }, 500);
@@ -549,7 +591,8 @@ export class RoomService {
         this.event.setRoomIOClear(true);
         let errMsg = e;
         clearTimeout(timer);
-        if (!('success' in errMsg)) {
+        this.store.dispatch(changeResourceSyncingStatus(this.roomId, resourceType, false));
+        if (!errMsg || typeof errMsg !== 'object' || !('success' in errMsg)) {
           errMsg = {
             success: false,
             code: 0,

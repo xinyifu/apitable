@@ -90,6 +90,16 @@
     span {
       line-height: 22px;
     }
+    .operatorName {
+      display: inline-block;
+      max-width: 96px;
+      margin-right: 4px;
+      overflow: hidden;
+      color: var(--textCommonPrimary);
+      text-overflow: ellipsis;
+      vertical-align: bottom;
+      white-space: nowrap;
+    }
   }
   &[data-active='true']{
     background-color: var(--bgBglessActive);
@@ -106,6 +116,64 @@
   color: var(--textCommonTertiary);
   font-size: 12px;
   line-height: 18px;
+}
+
+.recordRefs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 2px 0 4px;
+}
+
+.recordRef,
+.recordMore {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-height: 20px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--bgControlsDefault);
+  color: var(--textCommonSecondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.recordRef {
+  border: 0;
+  cursor: pointer;
+}
+
+.recordRef[data-status='deleted'] {
+  background: var(--bgDangerLightDefault);
+}
+
+.recordDeleted {
+  flex: none;
+  margin-right: 4px;
+  color: var(--textDangerDefault);
+}
+
+.recordTitle {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recordId {
+  flex: none;
+  margin-left: 4px;
+  color: var(--textCommonTertiary);
+  font-family: Monaco, Consolas, 'Courier New', monospace;
+}
+
+.recordRef .recordId:first-child {
+  margin-left: 0;
+}
+
+.recordMore {
+  color: var(--textCommonTertiary);
 }
 
 .danger {

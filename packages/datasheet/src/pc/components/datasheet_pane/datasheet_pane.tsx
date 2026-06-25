@@ -24,7 +24,7 @@ import dynamic from 'next/dynamic';
 import * as React from 'react';
 import { FC, useCallback, useContext, useEffect, useMemo } from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
-import { Alert, Button, Skeleton } from '@apitable/components';
+import { Button, Skeleton } from '@apitable/components';
 import {
   ConfigConstant,
   Events,
@@ -39,6 +39,7 @@ import {
   SystemConfig,
   t,
 } from '@apitable/core';
+import { CloseOutlined, InfoCircleFilled } from '@apitable/icons';
 import { ShortcutActionManager, ShortcutActionName } from 'modules/shared/shortcut_key';
 import { ApiPanel } from 'pc/components/api_panel';
 import { automationHistoryAtom } from 'pc/components/automation/controller';
@@ -99,7 +100,18 @@ interface IDatasheetMain {
 }
 
 const DatasheetMain = (props: IDatasheetMain) => {
-  const { loading, datasheetErrorCode, isNoPermission, shareId, datasheetId, preview, testFunctions, handleExitTest, mirrorId, embedId } = props;
+  const {
+    loading,
+    datasheetErrorCode,
+    isNoPermission,
+    shareId,
+    datasheetId,
+    preview,
+    testFunctions,
+    mirrorId,
+    embedId,
+  } = props;
+  const dispatch = useAppDispatch();
   const embedInfo = useAppSelector((state) => Selectors.getEmbedInfo(state));
   const previewDstType = useAppSelector((state) => {
     const datasheet = Selectors.getDatasheet(state);
@@ -117,6 +129,15 @@ const DatasheetMain = (props: IDatasheetMain) => {
     const view = Selectors.getViewById(snapshot, state.pageParams.viewId!);
     exportDatasheetBase('previewDatasheet', ConfigConstant.EXPORT_TYPE_XLSX, { view, ignorePermission: true });
   };
+
+  const handleExitPreviewClick = useCallback((event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    window.setTimeout(() => {
+      closeAllExpandRecord();
+      dispatch(StoreActions.resetDatasheet(PREVIEW_DATASHEET_ID));
+    }, 0);
+  }, [dispatch]);
 
   return (
     <div style={{ width: '100%', height: '100%' }}>
@@ -145,23 +166,35 @@ const DatasheetMain = (props: IDatasheetMain) => {
         )}
       </div>
       <SuspensionPanel shareId={shareId} datasheetId={datasheetId} />
-      {(preview || testFunctions) && previewDstType !== PREVIEW_DATASHEET_BACKUP &&
-          <Alert
-            className={styles.previewing}
-            type="default"
-            content={(
-              <div className={styles.previewTip}>
-                <span>{preview ? t(Strings.preview_time_machine, { version: preview }) :
-                  t(Strings.experience_test_function, { testFunctions })}</span>
-                <Button
-                  size="small"
-                  color="primary"
-                  onClick={exportPreviewCsv}
-                >{t(Strings.export_current_preview_view_data)}</Button>
-              </div>
-            )}
-          />
-      }
+      {(preview || testFunctions) && previewDstType !== PREVIEW_DATASHEET_BACKUP && (
+        <div className={styles.previewing} role="status">
+          <InfoCircleFilled size={16} color="var(--textBrandDefault)" />
+          <span className={styles.previewText}>
+            {preview ? t(Strings.preview_time_machine, { version: preview }) : t(Strings.experience_test_function, { testFunctions })}
+          </span>
+          <Button
+            className={styles.previewExportButton}
+            size="small"
+            color="primary"
+            onClick={exportPreviewCsv}
+          >{t(Strings.export_current_preview_view_data)}</Button>
+          {preview && (
+            <button
+              type="button"
+              className={styles.previewCloseButton}
+              title="退出预览"
+              aria-label="退出预览"
+              onMouseDown={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+              }}
+              onClick={handleExitPreviewClick}
+            >
+              <CloseOutlined size={16} />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 };
@@ -387,6 +420,25 @@ const DataSheetPaneBase: FC<React.PropsWithChildren<{ panelLeft?: JSX.Element }>
     setStorage(StorageName.TestFunctions, {}, StorageMethod.Set);
     window.location.reload();
   };
+
+  const handleExitPreview = useCallback(() => {
+    dispatch(StoreActions.resetDatasheet(PREVIEW_DATASHEET_ID));
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (!preview) {
+      return;
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        handleExitPreview();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleExitPreview, preview]);
 
   const getContentWidth = (visible: boolean) => {
     if (!visible) {

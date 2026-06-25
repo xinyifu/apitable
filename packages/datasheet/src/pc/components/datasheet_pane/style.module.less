@@ -20,25 +20,61 @@
 
 div.previewing {
   position: fixed;
-    left: calc(50% - 320px);
-    bottom: 24px;
-    width: 640px;
-    height: 48px;
-    border: 1px solid var(--borderOnbrandLight);
-    background: linear-gradient(0deg, var(--bgBrandLightDefault) 0%, var(--bgBrandLightDefault) 100%), var(--bgCommonDefault);
-    & > div {
-      display: block;
-      margin-right: 0;
+  z-index: var(--zIndex-3);
+  left: calc(50% - 320px);
+  bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 640px;
+  min-height: 48px;
+  padding: 8px 16px;
+  box-sizing: border-box;
+  border: 1px solid var(--borderOnbrandLight);
+  border-radius: 4px;
+  background: linear-gradient(0deg, var(--bgBrandLightDefault) 0%, var(--bgBrandLightDefault) 100%), var(--bgCommonDefault);
+
+  .previewText {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--textCommonPrimary);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .previewExportButton {
+    flex: none;
+
+    span {
+      vertical-align: baseline;
     }
-    .previewTip {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      button {
-        min-width: 68px;
-        span {
-          vertical-align: baseline;
-        }
-      }
+  }
+
+  .previewCloseButton {
+    position: absolute;
+    top: -12px;
+    right: -12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    padding: 0;
+    border: 1px solid var(--borderCommonDefault);
+    border-radius: 50%;
+    background: var(--bgCommonHighest);
+    box-shadow: var(--shadowCommonDefault);
+    color: var(--textCommonPrimary);
+    cursor: pointer;
+    line-height: 0;
+    z-index: 1;
+
+    &:hover {
+      background: var(--bgControlsHover);
+      color: var(--textCommonPrimary);
     }
+  }
 }

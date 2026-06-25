@@ -21,13 +21,14 @@ import { ReactElement, useCallback, useMemo } from 'react';
 import {
   SearchSelect,
 } from '@apitable/components';
-import { integrateCdnHost, Strings, t } from '@apitable/core';
+import { Strings, t } from '@apitable/core';
 import { getActionList } from 'pc/components/robot/robot_detail/utils';
 import { useAutomationController } from '../../../automation/controller';
 import { automationPanelAtom, automationStateAtom, PanelName } from '../../../automation/controller/atoms';
 import { createAction } from '../../api';
 import { IActionType, INodeOutputSchema, IRobotAction } from '../../interface';
 import { NewItem } from '../../robot_list/new_item';
+import { getAutomationServiceIcon } from '../../utils';
 import { EditType } from '../trigger/robot_trigger';
 import itemStyle from '../trigger/select_styles.module.less';
 import { debounce } from 'lodash';
@@ -110,7 +111,7 @@ export const CreateNewAction = ({ robotId, actionTypes, prevActionId, disabled =
       list={actionTypes.map(item => ({
         label: item.name,
         value: item.actionTypeId,
-        prefixIcon: <img src={integrateCdnHost(item.service.logo)} width={20} alt={''} style={{ marginRight: 4 }} />
+        prefixIcon: <img src={getAutomationServiceIcon(item.service)} width={20} alt={''} style={{ marginRight: 4 }} />
       }))} onChange={(item) => {
       debouncedCreateAction({
           robotId,
@@ -200,7 +201,7 @@ export const CreateNewActionLineButton = ({ robotId, actionTypes, prevActionId, 
       list={actionTypes.map(item => ({
         label: item.name,
         value: item.actionTypeId,
-        prefixIcon: <img src={integrateCdnHost(item.service.logo)} width={20} alt={''} style={{ marginRight: 4 }} />
+        prefixIcon: <img src={getAutomationServiceIcon(item.service)} width={20} alt={''} style={{ marginRight: 4 }} />
       }))} onChange={(item) => {
         createNewAction({
           robotId,

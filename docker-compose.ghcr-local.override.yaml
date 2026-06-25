@@ -1,0 +1,8 @@
+services:
+  mysql:
+    volumes:
+      - vika_mysql_data_case_sensitive_20260622:/var/lib/mysql
+
+volumes:
+  vika_mysql_data_case_sensitive_20260622:
+    external: true

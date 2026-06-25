@@ -26,7 +26,7 @@ import { shallowEqual, useSelector } from 'react-redux';
 import styled from 'styled-components';
 import useSWR from 'swr';
 import { Box, SearchSelect, useThemeColors } from '@apitable/components';
-import { integrateCdnHost, IReduxState, Selectors, StoreActions, Strings, t } from '@apitable/core';
+import { IReduxState, Selectors, StoreActions, Strings, t } from '@apitable/core';
 import { setSideBarVisible } from '@apitable/core/dist/modules/space/store/actions/space';
 import { ChevronDownOutlined } from '@apitable/icons';
 import { IFetchDatasheet } from '@apitable/widget-sdk/dist/message/interface';
@@ -44,6 +44,7 @@ import { changeActionTypeId, updateActionInput } from '../../api';
 import { getFilterActionTypes, getNodeOutputSchemaList, getNodeTypeOptions, operand2PureValue } from '../../helper';
 import { useActionTypes, useRobotTriggerTypes, useTriggerTypes } from '../../hooks';
 import { AutomationScenario, IRobotAction } from '../../interface';
+import { getAutomationServiceIcon } from '../../utils';
 import { MagicTextField } from '../magic_variable_container';
 import { NodeForm, NodeFormInfo } from '../node_form';
 import { IChangeEvent } from '../node_form/core/interface';
@@ -291,6 +292,19 @@ export const RobotAction = memo((props: IRobotActionProps) => {
   // FIXME: Temporary solution, simple checksum rules should be configurable via json instead of writing code here.
   const validate = (formData: any, errors: any) => {
     // FIXME: No business code should appear here
+    if (actionType && actionType.endpoint === 'sendWecomMsg') {
+      try {
+        const formDataValue = operand2PureValue(formData);
+        const { type, content } = formDataValue || {};
+        const contentByteLimit = type === 'markdown' ? 4096 : 2048;
+        if (new TextEncoder().encode(content || '').length > contentByteLimit) {
+          errors.addError(`企业微信${type === 'markdown' ? 'Markdown' : '文本'}消息内容不能超过 ${contentByteLimit} 字节`);
+        }
+      } catch (error) {
+        console.error('robot form validate error', error);
+      }
+    }
+
     if (actionType && actionType.endpoint === 'sendLarkMsg') {
       try {
         const formDataValue = operand2PureValue(formData);
@@ -327,7 +341,7 @@ export const RobotAction = memo((props: IRobotActionProps) => {
       onUpdate={handleUpdate}
       description={actionType.description}
       formData={formData}
-      serviceLogo={integrateCdnHost(actionType.service.logo)}
+      serviceLogo={getAutomationServiceIcon(actionType.service)}
       schema={schema}
       uiSchema={{ ...uiSchema, password: { 'ui:widget': 'PasswordWidget' } }}
       nodeOutputSchemaList={prevActionSchemaList}

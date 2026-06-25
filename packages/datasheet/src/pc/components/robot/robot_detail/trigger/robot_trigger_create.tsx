@@ -22,10 +22,8 @@ import * as React from 'react';
 import { useCallback, useEffect, useMemo } from 'react';
 import styled, { css } from 'styled-components';
 import { applyDefaultTheme, SearchSelect } from '@apitable/components';
-import { Selectors, Strings, t } from '@apitable/core';
+import { Strings, t } from '@apitable/core';
 import { CONST_MAX_TRIGGER_COUNT } from 'pc/components/automation/config';
-import { useAppSelector } from 'pc/store/react-redux';
-import { getEnvVariables } from 'pc/utils/env';
 import {
   automationCurrentTriggerId,
   automationPanelAtom,
@@ -34,9 +32,9 @@ import {
   useAutomationController,
 } from '../../../automation/controller';
 import { useAutomationResourcePermission } from '../../../automation/controller/use_automation_permission';
-import { createTrigger, ICronSchemaTimeZone } from '../../api';
+import { createTrigger } from '../../api';
 import { getNodeTypeOptions } from '../../helper';
-import { getDefaultSchema, useDefaultTriggerFormData } from '../../hooks';
+import { useDefaultTriggerFormData } from '../../hooks';
 import { AutomationScenario, ITriggerType } from '../../interface';
 import { NewItem } from '../../robot_list/new_item';
 import itemStyle from './select_styles.module.less';
@@ -46,6 +44,10 @@ interface IRobotTriggerCreateProps {
   preTriggerId: string | undefined;
   triggerTypes: ITriggerType[];
 }
+
+const filterSelfHostedTriggerTypes = (triggerTypes: ITriggerType[]) => {
+  return triggerTypes.filter((item) => item.endpoint !== 'scheduled_time_arrive');
+};
 
 export const StyledListContainer = styled.div.attrs(applyDefaultTheme)<{ width: string; minWidth: string }>`
   width: ${(props) => props.width};
@@ -64,8 +66,6 @@ export const StyledListContainer = styled.div.attrs(applyDefaultTheme)<{ width: 
 export const RobotTriggerCreateForm = ({ robotId, triggerTypes, preTriggerId }: IRobotTriggerCreateProps) => {
   const defaultFormData = useDefaultTriggerFormData();
 
-  const userTimezone = useAppSelector(Selectors.getUserTimeZone)!;
-
   const permissions = useAutomationResourcePermission();
   const {
     api: { refresh },
@@ -76,14 +76,10 @@ export const RobotTriggerCreateForm = ({ robotId, triggerTypes, preTriggerId }: 
 
   const triggerList = state?.robot?.triggers ?? [];
 
-  const timeScheduleTriggerType = useMemo(() => {
-    return triggerTypes.find((item) => item.endpoint === 'scheduled_time_arrive');
-  }, [triggerTypes]);
-
   const triggerTypeOptions = useMemo(() => {
-    let list = triggerTypes;
+    let list = filterSelfHostedTriggerTypes(triggerTypes);
     if (state?.scenario === AutomationScenario.datasheet) {
-      list = triggerTypes.filter((item) => item.endpoint !== 'button_field' && item.endpoint !== 'button_clicked');
+      list = list.filter((item) => item.endpoint !== 'button_field' && item.endpoint !== 'button_clicked');
     }
     return getNodeTypeOptions(list);
   }, [state?.scenario, triggerTypes]);
@@ -99,16 +95,12 @@ export const RobotTriggerCreateForm = ({ robotId, triggerTypes, preTriggerId }: 
 
   const createRobotTrigger = useCallback(async (triggerTypeId: string) => {
     const triggerType = triggerTypes.find((item) => item.triggerTypeId === triggerTypeId);
-    // When the trigger is created for a record, the default value needs to be filled in.
-    let input = triggerType?.endpoint === 'record_created' ? defaultFormData : undefined;
-
-    let scheduleConfig: ICronSchemaTimeZone | undefined = undefined;
     if (triggerType?.endpoint === 'scheduled_time_arrive') {
-      scheduleConfig = {
-        timeZone: userTimezone,
-      };
-      input = getDefaultSchema(userTimezone);
+      return;
     }
+    // When the trigger is created for a record, the default value needs to be filled in.
+    const input = triggerType?.endpoint === 'record_created' ? defaultFormData : undefined;
+
     if (!state?.resourceId) {
       console.error('.resourceId unfound ');
       return;
@@ -154,17 +146,11 @@ export const RobotTriggerCreateForm = ({ robotId, triggerTypes, preTriggerId }: 
 
   const debouncedCreateTrigger = debounce(createRobotTrigger, 1000);
 
-  const { IS_ENTERPRISE } = getEnvVariables();
   if (!triggerTypes) {
     return null;
   }
 
   const handleCreateFormChange = (triggerTypeId: string) => {
-    if (triggerTypeId === timeScheduleTriggerType?.triggerTypeId && !IS_ENTERPRISE) {
-      window.open('https://aitable.ai/pricing/');
-      return;
-    }
-
     if (triggerTypeId) {
       debouncedCreateTrigger(triggerTypeId);
     }

@@ -58,6 +58,8 @@ export class Engine {
   getState: () => any;
   dispatch: (action: any) => void;
   private prepared = false;
+  private prepareError: any = null;
+  private prepareResolvers: { resolve: (prepared: boolean) => void; reject: (error: any) => void }[] = [];
   private readonly viewPropertyFilter?: ViewPropertyFilter;
 
   constructor(params: {
@@ -169,10 +171,18 @@ export class Engine {
    * checkVersion does not exist when instantiated
    */
   async prepare(checkVersion?: number) {
+    this.prepared = false;
+    this.prepareError = null;
     try {
       await this.checkLocalDiffChanges(checkVersion);
       this.prepared = true;
+      this.prepareResolvers.forEach(({ resolve }) => resolve(true));
+      this.prepareResolvers = [];
     } catch (error) {
+      this.prepareError = error;
+      this.prepareResolvers.forEach(({ reject }) => reject(error));
+      this.prepareResolvers = [];
+
       Player.doTrigger(Events.app_error_logger, {
         error,
         metaData: {
@@ -191,6 +201,10 @@ export class Engine {
         message: t(Strings.local_data_conflict),
         modalType: ModalType.Info
       });
+
+      if (checkVersion != null) {
+        throw error;
+      }
     }
   }
 
@@ -198,17 +212,15 @@ export class Engine {
    * Completed the version supplement of local resources, and can perform collaborative data synchronization operations
    */
   waitPrepareComplete() {
-    return new Promise<boolean>((resolve) => {
-      if (this.prepared) {
-        return resolve(true);
-      }
+    if (this.prepared) {
+      return Promise.resolve(true);
+    }
+    if (this.prepareError) {
+      return Promise.reject(this.prepareError);
+    }
 
-      const timer = setInterval(() => {
-        if (this.prepared) {
-          clearInterval(timer);
-          return resolve(true);
-        }
-      }, 30);
+    return new Promise<boolean>((resolve, reject) => {
+      this.prepareResolvers.push({ resolve, reject });
     });
   }
 

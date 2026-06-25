@@ -25,6 +25,7 @@ export * as webhook from './webhook';
 export * as ruliu from './ruliu';
 export * as slack from './slack';
 export * as sms from './sms';
+export * as wecom from './wecom';
 
 const actionEnterpriseModulePath = path.join(__dirname, '../../enterprise/automation/action');
 const isEnterpriseLevel: boolean = fs.existsSync(actionEnterpriseModulePath);

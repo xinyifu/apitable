@@ -125,7 +125,7 @@ const formPack = combineReducers({
   },
   connected: (state = false, action) => {
     if (action.type === actions.FORM_CONNECTED) {
-      return true;
+      return action.payload;
     }
     return state;
   },

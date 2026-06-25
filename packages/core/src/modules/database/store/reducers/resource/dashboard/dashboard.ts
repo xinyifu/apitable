@@ -148,7 +148,7 @@ const dashboardPack = combineReducers<IDashboardPack>({
   },
   connected: (state = false, action) => {
     if (action.type === ActionConstants.DASHBOARD_CONNECTED) {
-      return true;
+      return action.payload;
     }
     return state;
   },

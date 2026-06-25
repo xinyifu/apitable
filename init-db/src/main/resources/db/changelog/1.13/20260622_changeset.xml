@@ -1,0 +1,133 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<!--
+ APITable <https://github.com/apitable/apitable>
+ Copyright (C) 2022 APITable Ltd. <https://apitable.com>
+
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU Affero General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU Affero General Public License for more details.
+
+ You should have received a copy of the GNU Affero General Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+	  http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+    <changeSet id="V1.13-20260622-001" author="Codex" labels="automation">
+        <comment>Add WeCom group robot webhook automation action</comment>
+        <sql><![CDATA[
+            SET NAMES utf8mb4;
+
+            INSERT INTO `${table.prefix}automation_service`
+                (`id`, `service_id`, `slug`, `name`, `description`, `logo`, `base_url`, `i18n`, `is_deleted`, `created_by`, `updated_by`)
+            SELECT
+                202606220001,
+                'asvWecom',
+                'wecom',
+                'wecom',
+                'wecom',
+                '/static/icon/signin/signin_img_wecom.png',
+                'automation://wecom',
+                JSON_OBJECT(
+                    'zh', JSON_OBJECT('wecom', '企业微信'),
+                    'en', JSON_OBJECT('wecom', 'WeCom')
+                ),
+                0,
+                0,
+                0
+            WHERE NOT EXISTS (
+                SELECT 1 FROM `${table.prefix}automation_service`
+                WHERE `service_id` = 'asvWecom' OR `slug` = 'wecom'
+            );
+
+            INSERT INTO `${table.prefix}automation_action_type`
+                (`id`, `service_id`, `action_type_id`, `name`, `description`, `input_json_schema`, `output_json_schema`, `endpoint`, `i18n`, `is_deleted`, `created_by`, `updated_by`)
+            SELECT
+                202606220002,
+                'asvWecom',
+                'aatSendWecomMsg',
+                'robot_action_send_wework_title',
+                'robot_action_send_wework_desc',
+                JSON_OBJECT(
+                    'schema', JSON_OBJECT(
+                        'type', 'object',
+                        'required', JSON_ARRAY('webhookUrl', 'type', 'content'),
+                        'properties', JSON_OBJECT(
+                            'webhookUrl', JSON_OBJECT(
+                                'type', 'string',
+                                'title', 'robot_action_send_wework_config_1',
+                                'description', 'robot_action_send_wework_config_1_desc'
+                            ),
+                            'type', JSON_OBJECT(
+                                'type', 'string',
+                                'title', 'robot_action_send_wework_config_2',
+                                'description', 'robot_action_send_wework_config_2_desc',
+                                'enum', JSON_ARRAY('text', 'markdown'),
+                                'enumNames', JSON_ARRAY('robot_action_send_wework_message_type_1', 'robot_action_send_wework_message_type_2'),
+                                'default', 'text'
+                            ),
+                            'content', JSON_OBJECT(
+                                'type', 'string',
+                                'title', 'robot_action_send_wework_config_3',
+                                'description', 'robot_action_send_wework_config_3_desc'
+                            )
+                        )
+                    ),
+                    'uiSchema', JSON_OBJECT(
+                        'ui:order', JSON_ARRAY('webhookUrl', 'type', 'content'),
+                        'webhookUrl', JSON_OBJECT('ui:widget', 'password'),
+                        'content', JSON_OBJECT('ui:widget', 'TextWidget')
+                    )
+                ),
+                JSON_OBJECT(
+                    'schema', JSON_OBJECT(
+                        'type', 'object',
+                        'properties', JSON_OBJECT()
+                    ),
+                    'uiSchema', JSON_OBJECT()
+                ),
+                'sendWecomMsg',
+                JSON_OBJECT(
+                    'zh', JSON_OBJECT(
+                        'robot_action_send_wework_title', '发送消息到企业微信群',
+                        'robot_action_send_wework_desc', '自动化开始运行后，会自动向指定企业微信群聊发送消息',
+                        'robot_action_send_wework_config_1', '企业微信机器人 webhook 地址',
+                        'robot_action_send_wework_config_1_desc', '指定一个企业微信机器人，向它所在的群聊发送消息',
+                        'robot_action_send_wework_config_2', '消息类型',
+                        'robot_action_send_wework_config_2_desc', '目前支持发送 text 和 markdown 类型的消息',
+                        'robot_action_send_wework_config_3', '消息内容',
+                        'robot_action_send_wework_config_3_desc', '输入要发送到企业微信群聊的消息内容（输入英文斜杠「/」可插入变量）',
+                        'robot_action_send_wework_message_type_1', '文本消息',
+                        'robot_action_send_wework_message_type_2', 'Markdown'
+                    ),
+                    'en', JSON_OBJECT(
+                        'robot_action_send_wework_title', 'Send a message to WeCom',
+                        'robot_action_send_wework_desc', 'When the automation starts working, it will automatically send a message to your WeCom chat group',
+                        'robot_action_send_wework_config_1', 'WeCom group robot webhook URL',
+                        'robot_action_send_wework_config_1_desc', 'Specify a WeCom group robot webhook to send messages to its chat group',
+                        'robot_action_send_wework_config_2', 'Message type',
+                        'robot_action_send_wework_config_2_desc', 'Currently only text and markdown messages are supported',
+                        'robot_action_send_wework_config_3', 'Message content',
+                        'robot_action_send_wework_config_3_desc', 'Enter the message to send to the WeCom chat group',
+                        'robot_action_send_wework_message_type_1', 'Text',
+                        'robot_action_send_wework_message_type_2', 'Markdown'
+                    )
+                ),
+                0,
+                0,
+                0
+            WHERE NOT EXISTS (
+                SELECT 1 FROM `${table.prefix}automation_action_type`
+                WHERE `action_type_id` = 'aatSendWecomMsg' OR `endpoint` = 'sendWecomMsg'
+            );
+        ]]></sql>
+    </changeSet>
+</databaseChangeLog>

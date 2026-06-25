@@ -46,6 +46,7 @@ import { getEnvVariables } from 'pc/utils/env';
 import EllipsisText from '../../ellipsis_text';
 import { AutomationScenario, IAutomationDatum, IRobotNodeType, IRobotNodeTypeInfo } from '../interface';
 import { getActionList, getTriggerList } from '../robot_detail/utils';
+import { getAutomationServiceIcon } from '../utils';
 import styles from './styles.module.less';
 
 interface IRobotListItemCardProps {
@@ -178,11 +179,11 @@ export const RobotListItemCardReadOnly: React.FC<React.PropsWithChildren<IRobotL
                   <span className={styles.nodeLogo}>
                     <Image
                       key={`${nodeType.nodeTypeId}_${index}`}
-                      src={integrateCdnHost(
+                      src={
                         nodeType.type === IRobotNodeType.Trigger && getEnvVariables().ROBOT_TRIGGER_ICON
-                          ? getEnvVariables().ROBOT_TRIGGER_ICON!
-                          : nodeType.service?.logo ?? '',
-                      )}
+                          ? integrateCdnHost(getEnvVariables().ROBOT_TRIGGER_ICON!)
+                          : getAutomationServiceIcon(nodeType.service)
+                      }
                       alt=""
                       width={24}
                       height={24}
