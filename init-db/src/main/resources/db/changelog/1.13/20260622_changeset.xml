@@ -24,6 +24,8 @@
     <changeSet id="V1.13-20260622-001" author="Codex" labels="automation">
         <comment>Add WeCom group robot webhook automation action</comment>
         <sql><![CDATA[
+            SET NAMES utf8mb4;
+
             INSERT INTO `${table.prefix}automation_service`
                 (`id`, `service_id`, `slug`, `name`, `description`, `logo`, `base_url`, `i18n`, `is_deleted`, `created_by`, `updated_by`)
             SELECT
@@ -32,7 +34,7 @@
                 'wecom',
                 'wecom',
                 'wecom',
-                'space/2023/03/29/6e70cb7968cc482793459041c5eb56ca',
+                '/static/icon/signin/signin_img_wecom.png',
                 'automation://wecom',
                 JSON_OBJECT(
                     'zh', JSON_OBJECT('wecom', '企业微信'),

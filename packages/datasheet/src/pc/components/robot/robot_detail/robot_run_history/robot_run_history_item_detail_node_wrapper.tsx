@@ -22,7 +22,7 @@ import * as React from 'react';
 import { useState } from 'react';
 import styled from 'styled-components';
 import { Box, IconButton, FloatUiTooltip as Tooltip, Typography } from '@apitable/components';
-import { integrateCdnHost, Strings, t } from '@apitable/core';
+import { Strings, t } from '@apitable/core';
 import {
   WarnCircleFilled,
   ChevronRightOutlined,
@@ -31,6 +31,7 @@ import {
 import styles from 'style.module.less';
 import { ItemStatus } from 'pc/components/automation/run_history/list/item_status';
 import { INodeType, IRobotRunHistoryDetail } from '../../interface';
+import { getAutomationServiceIcon } from '../../utils';
 import { useCssColors } from '../trigger/use_css_colors';
 
 interface IRobotRunHistoryNodeDetail {
@@ -99,7 +100,7 @@ export const RobotRunHistoryNodeWrapper = (props: React.PropsWithChildren<IRobot
 
         <Box flexDirection={'column'} width={'100%'}>
           <Box flexDirection={'row'} alignItems={'center'} display={'flex'} onClick={() => setShowDetail(!showDetail)}>
-            <Image src={integrateCdnHost(nodeType?.service?.logo)} alt={nodeType?.service?.name} width={32} height={32} />
+            <Image src={getAutomationServiceIcon(nodeType?.service)} alt={nodeType?.service?.name} width={32} height={32} />
             <Typography variant="h7" color={colors.textCommonPrimary} style={{ marginLeft: 8 }}>
               {nodeType.name}
             </Typography>

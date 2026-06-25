@@ -39,6 +39,7 @@ import { TriggerDataSheetMap } from 'pc/components/robot/robot_detail/magic_vari
 import { getEnvVariables } from 'pc/utils/env';
 import { getFieldTypeIcon, getFieldTypeIconOrNull } from '../multi_grid/field_setting';
 import { IActionType, IJsonSchema, INodeOutputSchema, INodeType, IRobotAction, IRobotTrigger, ITriggerType } from './interface';
+import { getAutomationServiceIcon } from './utils';
 // @ts-ignore
 import { isWecomFunc } from 'enterprise/home/social_platform/utils';
 
@@ -59,9 +60,10 @@ export const getNodeTypeOptions = (nodeTypes: INodeType[]) => {
       prefixIcon: createElement(
         'img',
         {
-          src: integrateCdnHost(
-            'triggerTypeId' in nodeType && getEnvVariables().ROBOT_TRIGGER_ICON ? getEnvVariables().ROBOT_TRIGGER_ICON! : nodeType.service.logo,
-          ),
+          src:
+            'triggerTypeId' in nodeType && getEnvVariables().ROBOT_TRIGGER_ICON
+              ? integrateCdnHost(getEnvVariables().ROBOT_TRIGGER_ICON!)
+              : getAutomationServiceIcon(nodeType.service),
           style: {
             width: '16px',
             height: '16px',
@@ -138,7 +140,9 @@ export const getNodeOutputSchemaList = (props: {
                   Trigger_Last: arrayName[arrayName.length - 1]?.name ?? '',
                 }),
             // @ts-ignore
-            icon: integrateCdnHost(getEnvVariables().ROBOT_TRIGGER_ICON ? getEnvVariables().ROBOT_TRIGGER_ICON! : triggerType?.service?.logo),
+            icon: getEnvVariables().ROBOT_TRIGGER_ICON
+              ? integrateCdnHost(getEnvVariables().ROBOT_TRIGGER_ICON!)
+              : getAutomationServiceIcon(triggerType?.service),
             schema: {
               ...triggerType.outputJsonSchema,
               title: t(Strings.automation_variable_datasheet, {
@@ -157,7 +161,7 @@ export const getNodeOutputSchemaList = (props: {
         id: action.id,
         //description: '这是描述',
         // @ts-ignore
-        icon: integrateCdnHost(actionType?.service?.logo),
+        icon: getAutomationServiceIcon(actionType?.service),
         title: actionType.name,
         // TODO: After integration, remove the judgement here, the three actions that send IM messages do not have outputJsonSchema.
         schema: ['sendWecomMsg', 'sendLarkMsg', 'sendDingtalkMsg'].includes(actionType?.endpoint) ? undefined : actionType.outputJsonSchema,

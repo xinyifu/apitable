@@ -87,6 +87,7 @@ import { IFormNodeItem } from '../../../tool_bar/foreign_form/form_list_panel';
 import { changeTriggerTypeId, updateTriggerInput } from '../../api';
 import { getNodeTypeOptions } from '../../helper';
 import { AutomationScenario, IRobotTrigger, ITriggerType } from '../../interface';
+import { getAutomationServiceIcon } from '../../utils';
 import { DropdownTrigger } from '../action/robot_action';
 import { INodeFormControlProps, NodeForm, NodeFormInfo } from '../node_form';
 import { literal2Operand } from '../node_form/ui/utils';
@@ -125,6 +126,23 @@ export const customizer = (objValue, othValue) => {
     return true;
   }
   return undefined;
+};
+
+const filterSelfHostedTriggerTypes = (triggerTypes: ITriggerType[]) => {
+  return triggerTypes.filter((item) => item.endpoint !== 'scheduled_time_arrive');
+};
+
+const EMPTY_TRIGGER_INPUT_JSON_SCHEMA = {
+  schema: {
+    type: 'object',
+    properties: {},
+    additionalProperties: false,
+  },
+  uiSchema: {},
+};
+
+const getSafeTriggerInputJsonSchema = (triggerType: ITriggerType) => {
+  return triggerType.inputJsonSchema?.schema ? triggerType.inputJsonSchema : EMPTY_TRIGGER_INPUT_JSON_SCHEMA;
 };
 
 const useAutomationLocalStateMap = () => {
@@ -322,34 +340,47 @@ export const RobotTriggerBase = memo((props: IRobotTriggerBase) => {
   const defaultTimeZone = tz ?? userTimezone;
 
   const { schema, uiSchema = {} } = useMemo(() => {
+    const getSchemaProperties = (draft: any) => draft.schema?.properties;
+    const setPropertyEnum = (property: any, values: Array<string | undefined>, names: Array<string | undefined>) => {
+      if (!property) {
+        return;
+      }
+      if (values.some((value) => value == null) || names.some((name) => name == null)) {
+        return;
+      }
+      property.enum = values;
+      property.enumNames = names;
+    };
+    const setPropertyDefault = (property: any, value: string | undefined) => {
+      if (!property || value == null) {
+        return;
+      }
+      property.default = value;
+    };
     const getTriggerInputSchema = (triggerType: ITriggerType) => {
       if (automationState?.scenario === AutomationScenario.datasheet) {
-        return produce(triggerType.inputJsonSchema, (draft) => {
-          const properties = draft.schema.properties as any;
+        return produce(getSafeTriggerInputJsonSchema(triggerType), (draft) => {
+          const properties = getSchemaProperties(draft);
           switch (triggerType.endpoint) {
             case 'scheduled_time_arrive': {
-              properties!.timeZone.default = defaultTimeZone;
-              properties!.timeZone.enum = options.map((r) => r.value);
-              properties!.timeZone.enumNames = options.map((r) => r.label);
+              setPropertyDefault(properties?.timeZone, defaultTimeZone);
+              setPropertyEnum(properties?.timeZone, options.map((r) => r.value), options.map((r) => r.label));
               break;
             }
             case 'form_submitted':
-              properties!.formId.enum = formList.map((f: IFormNodeItem) => f.nodeId);
-              properties!.formId.enumNames = formList.map((f: IFormNodeItem) => f.nodeName);
+              setPropertyEnum(properties?.formId, formList.map((f: IFormNodeItem) => f.nodeId), formList.map((f: IFormNodeItem) => f.nodeName));
               break;
             case 'button_clicked':
             case 'button_field':
             case 'record_matches_conditions':
-              properties!.datasheetId.default = datasheetId;
-              properties!.datasheetId.enum = [datasheetId];
-              properties!.datasheetId.enumNames = [datasheetName];
+              setPropertyDefault(properties?.datasheetId, datasheetId);
+              setPropertyEnum(properties?.datasheetId, [datasheetId], [datasheetName]);
               // If here is object ui can't be rendered properly, convert to string and handle serialization and deserialization at onchange time.
               break;
 
             case 'record_created':
-              properties!.datasheetId.default = datasheetId;
-              properties!.datasheetId.enum = [datasheetId];
-              properties!.datasheetId.enumNames = [datasheetName];
+              setPropertyDefault(properties?.datasheetId, datasheetId);
+              setPropertyEnum(properties?.datasheetId, [datasheetId], [datasheetName]);
               break;
             default:
               break;
@@ -358,13 +389,12 @@ export const RobotTriggerBase = memo((props: IRobotTriggerBase) => {
         });
       }
 
-      return produce(triggerType.inputJsonSchema, (draft) => {
-        const properties = draft.schema.properties as any;
+      return produce(getSafeTriggerInputJsonSchema(triggerType), (draft) => {
+        const properties = getSchemaProperties(draft);
         switch (triggerType.endpoint) {
           case 'scheduled_time_arrive': {
-            properties!.timeZone.default = defaultTimeZone;
-            properties!.timeZone.enum = options.map((r) => r.value);
-            properties!.timeZone.enumNames = options.map((r) => r.label);
+            setPropertyDefault(properties?.timeZone, defaultTimeZone);
+            setPropertyEnum(properties?.timeZone, options.map((r) => r.value), options.map((r) => r.label));
             break;
           }
           default:
@@ -373,14 +403,15 @@ export const RobotTriggerBase = memo((props: IRobotTriggerBase) => {
         return draft;
       });
     };
-    return getTriggerInputSchema(triggerType!);
+    return triggerType ? getTriggerInputSchema(triggerType) : EMPTY_TRIGGER_INPUT_JSON_SCHEMA;
   }, [automationState?.scenario, datasheetId, datasheetName, defaultTimeZone, formList, options, triggerType]);
 
   const triggerTypeOptionsWithoutButtonIsClicked = useMemo(() => {
+    let list = filterSelfHostedTriggerTypes(triggerTypes);
     if (automationState?.scenario === AutomationScenario.datasheet) {
-      return getNodeTypeOptions(triggerTypes.filter((r) => r.endpoint !== 'button_field' && r.endpoint !== 'button_clicked'));
+      list = list.filter((r) => r.endpoint !== 'button_field' && r.endpoint !== 'button_clicked');
     }
-    return getNodeTypeOptions(triggerTypes);
+    return getNodeTypeOptions(list);
   }, [automationState?.scenario, triggerTypes]);
 
   const getDstIdItem = useMemo(() => {
@@ -838,7 +869,7 @@ export const RobotTriggerBase = memo((props: IRobotTriggerBase) => {
       }}
       title={triggerType?.name}
       description={triggerType?.description}
-      serviceLogo={integrateCdnHost(triggerType!.service.logo)}
+      serviceLogo={getAutomationServiceIcon(triggerType!.service)}
     >
       <SearchSelect
         // @ts-ignore

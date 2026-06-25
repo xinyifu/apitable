@@ -26,7 +26,7 @@ import { shallowEqual, useSelector } from 'react-redux';
 import styled from 'styled-components';
 import useSWR from 'swr';
 import { Box, SearchSelect, useThemeColors } from '@apitable/components';
-import { integrateCdnHost, IReduxState, Selectors, StoreActions, Strings, t } from '@apitable/core';
+import { IReduxState, Selectors, StoreActions, Strings, t } from '@apitable/core';
 import { setSideBarVisible } from '@apitable/core/dist/modules/space/store/actions/space';
 import { ChevronDownOutlined } from '@apitable/icons';
 import { IFetchDatasheet } from '@apitable/widget-sdk/dist/message/interface';
@@ -44,6 +44,7 @@ import { changeActionTypeId, updateActionInput } from '../../api';
 import { getFilterActionTypes, getNodeOutputSchemaList, getNodeTypeOptions, operand2PureValue } from '../../helper';
 import { useActionTypes, useRobotTriggerTypes, useTriggerTypes } from '../../hooks';
 import { AutomationScenario, IRobotAction } from '../../interface';
+import { getAutomationServiceIcon } from '../../utils';
 import { MagicTextField } from '../magic_variable_container';
 import { NodeForm, NodeFormInfo } from '../node_form';
 import { IChangeEvent } from '../node_form/core/interface';
@@ -340,7 +341,7 @@ export const RobotAction = memo((props: IRobotActionProps) => {
       onUpdate={handleUpdate}
       description={actionType.description}
       formData={formData}
-      serviceLogo={integrateCdnHost(actionType.service.logo)}
+      serviceLogo={getAutomationServiceIcon(actionType.service)}
       schema={schema}
       uiSchema={{ ...uiSchema, password: { 'ui:widget': 'PasswordWidget' } }}
       nodeOutputSchemaList={prevActionSchemaList}
