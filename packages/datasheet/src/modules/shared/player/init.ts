@@ -112,21 +112,26 @@ export function init() {
       pendingBindEventsInSteps.push(byEventId);
     });
   pendingBindEventsInSteps.forEach((eventId) => {
-    Player.bindTrigger(Events[eventId], () => {
-      const hooks = getPlayerHooks?.() || {};
-      const { curGuideWizardId, triggeredGuideInfo } = hooks;
-      // Whether the user is currently in certain wizards, determine whether the user has previously triggered
-      if (!triggeredGuideInfo || curGuideWizardId === -1 || !triggeredGuideInfo.hasOwnProperty(curGuideWizardId)) return;
-      // The corresponding stepId of the current hooks event is Number(key), which determines whether the step before this one has been completed.
-      const curStepInfo = triggeredGuideInfo[curGuideWizardId];
-      if (typeof curStepInfo.steps !== 'object' || curStepInfo.steps.length === curStepInfo.triggeredSteps.length) return;
-      const nextStepIds = curStepInfo.steps[curStepInfo.triggeredSteps.length];
-      const hasByEvents = nextStepIds.find((stepId) => {
-        const stepInfo = Steps[stepId];
-        return stepInfo && 'byEvent' in stepInfo && stepInfo.byEvent && stepInfo.byEvent[0] === eventId;
-      });
-      if (!hasByEvents) return;
-      TriggerCommands.open_guide_next_step?.({ clearAllPrevUi: true });
-    });
+    Player.bindTrigger(
+      Events[eventId],
+      () => {
+        const hooks = getPlayerHooks?.() || {};
+        const { curGuideWizardId, triggeredGuideInfo } = hooks;
+        // Whether the user is currently in certain wizards, determine whether the user has previously triggered
+        if (!triggeredGuideInfo || curGuideWizardId === -1 || !triggeredGuideInfo.hasOwnProperty(curGuideWizardId)) return;
+        // The corresponding stepId of the current hooks event is Number(key), which determines whether the step before this one has been completed.
+        const curStepInfo = triggeredGuideInfo[curGuideWizardId];
+        if (typeof curStepInfo.steps !== 'object' || curStepInfo.steps.length === curStepInfo.triggeredSteps.length) return;
+        const nextStepIds = curStepInfo.steps[curStepInfo.triggeredSteps.length];
+        const hasByEvents = nextStepIds.find((stepId) => {
+          const stepInfo = Steps[stepId];
+          return stepInfo && 'byEvent' in stepInfo && stepInfo.byEvent && stepInfo.byEvent[0] === eventId;
+        });
+        if (!hasByEvents) return;
+        TriggerCommands.open_guide_next_step?.({ clearAllPrevUi: true });
+      },
+      0,
+      true,
+    );
   });
 }
