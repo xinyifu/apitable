@@ -38,7 +38,7 @@ export enum ActionType {
 export const PcHome: React.FC<React.PropsWithChildren<unknown>> = () => {
   const inviteLinkInfo = useAppSelector((state: IReduxState) => state.invite.inviteLinkInfo);
   const inviteEmailInfo = useAppSelector((state: IReduxState) => state.invite.inviteEmailInfo);
-  const [action, setAction] = useState<ActionType>(ActionType.SignUp);
+  const [action, setAction] = useState<ActionType>(ActionType.SignIn);
   const [email, setEmail] = useState<string>('');
   const router = useRouter();
 
