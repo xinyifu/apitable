@@ -1,0 +1,62 @@
+@import "~pc/styles/lib_var.less";
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 88px;
+  background: rgba(var(--lowestBg-rgb), 45%);
+  outline: none;
+  pointer-events: auto;
+}
+
+.content {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 7px 12px;
+  border: 1px solid var(--borderCommonDefault);
+  border-radius: 4px;
+  background: var(--bgCommonHighest);
+  box-shadow: var(--shadowCommonDefault);
+  color: var(--textCommonPrimary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--borderCommonDefault);
+  border-top-color: var(--primaryColor);
+  border-radius: 50%;
+  animation: syncRecoveringSpin 0.8s linear infinite;
+}
+
+.text {
+  white-space: nowrap;
+}
+
+.refreshButton {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--primaryColor);
+  cursor: pointer;
+  font: inherit;
+
+  &:hover {
+    color: var(--primaryColor);
+    text-decoration: underline;
+  }
+}
+
+@keyframes syncRecoveringSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}

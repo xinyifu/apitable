@@ -23,6 +23,19 @@ import { Network } from 'pc/components/network_status';
 
 import { useAppSelector } from 'pc/store/react-redux';
 
+const getPostMessageStatus = (status: Network) => {
+  switch (status) {
+    case Network.Reconnecting:
+      return Network.Loading;
+    case Network.ConnectingResource:
+      return Network.Offline;
+    case Network.SyncingData:
+      return Network.Sync;
+    default:
+      return status;
+  }
+};
+
 export const useNetwork = (automatic = true, resourceId: string, resourceType: ResourceType) => {
   const [status, setStatus] = useState<Network>(Network.Online);
   const { templateId, nodeId } = useAppSelector((state) => state.pageParams);
@@ -47,7 +60,7 @@ export const useNetwork = (automatic = true, resourceId: string, resourceType: R
         message: 'socketStatus',
         data: {
           roomId: nodeId,
-          status: status,
+          status: getPostMessageStatus(status),
         },
       },
       '*',
@@ -60,15 +73,15 @@ export const useNetwork = (automatic = true, resourceId: string, resourceType: R
     }
 
     if (IOConnecting) {
-      setStatus(Network.Loading);
+      setStatus(Network.Reconnecting);
       return;
     }
     if (!connected) {
-      setStatus(Network.Offline);
+      setStatus(Network.ConnectingResource);
       return;
     }
     if (syncing) {
-      setStatus(Network.Sync);
+      setStatus(Network.SyncingData);
       return;
     }
     setStatus(Network.Online);

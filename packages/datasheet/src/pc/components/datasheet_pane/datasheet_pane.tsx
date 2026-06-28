@@ -20,6 +20,7 @@ import { useToggle } from 'ahooks';
 import classNames from 'classnames';
 import { useAtom } from 'jotai';
 import { get } from 'lodash';
+import { ShortcutActionManager, ShortcutActionName } from 'modules/shared/shortcut_key';
 import dynamic from 'next/dynamic';
 import * as React from 'react';
 import { FC, useCallback, useContext, useEffect, useMemo } from 'react';
@@ -40,7 +41,6 @@ import {
   t,
 } from '@apitable/core';
 import { CloseOutlined, InfoCircleFilled } from '@apitable/icons';
-import { ShortcutActionManager, ShortcutActionName } from 'modules/shared/shortcut_key';
 import { ApiPanel } from 'pc/components/api_panel';
 import { automationHistoryAtom } from 'pc/components/automation/controller';
 import AutomationHistoryPanel from 'pc/components/automation/run_history/modal/modal';
@@ -62,11 +62,13 @@ import { closeAllExpandRecord } from '../expand_record';
 import { ExpandRecordPanel } from '../expand_record_panel';
 import { ServerError } from '../invalid_page/server_error';
 import { MobileToolBar } from '../mobile_tool_bar';
+import { Network } from '../network_status';
 import { NoPermission } from '../no_permission';
 import { SuspensionPanel } from '../suspension_panel';
 import { TabBar } from '../tab_bar';
 import { ViewContainer } from '../view_container';
 import { WidgetPanel } from '../widget';
+import { SyncRecoveringOverlay } from './reconnecting/sync_recovering_overlay';
 // @ts-ignore
 import { Copilot } from 'enterprise/Copilot';
 // @ts-ignore
@@ -211,6 +213,10 @@ const DefaultPanelWidth = {
 
 const DISABLED_CLOSE_SIDEBAR_WIDTH = 1920;
 
+const isRecoveringNetworkStatus = (status: Network) => {
+  return status === Network.Reconnecting || status === Network.ConnectingResource || status === Network.SyncingData;
+};
+
 const DataSheetPaneBase: FC<React.PropsWithChildren<{ panelLeft?: JSX.Element }>> = (props) => {
   const { shareId, datasheetId, templateId, mirrorId, embedId } = useAppSelector((state) => {
     return state.pageParams;
@@ -224,6 +230,24 @@ const DataSheetPaneBase: FC<React.PropsWithChildren<{ panelLeft?: JSX.Element }>
   const loading = useAppSelector((state) => {
     const datasheet = Selectors.getDatasheet(state);
     return Boolean(!datasheet || datasheet.isPartOfData || datasheet.sourceId);
+  });
+  const syncRecoveringStatus = useAppSelector((state) => {
+    const resourceId = mirrorId || datasheetId;
+    const resourceType = mirrorId ? ResourceType.Mirror : ResourceType.Datasheet;
+    if (state.space.reconnecting) {
+      return Network.Reconnecting;
+    }
+    if (!resourceId) {
+      return Network.Online;
+    }
+    const resourceNetworking = Selectors.getResourceNetworking(state, resourceId, resourceType);
+    if (!resourceNetworking?.connected) {
+      return Network.ConnectingResource;
+    }
+    if (resourceNetworking.syncing) {
+      return Network.SyncingData;
+    }
+    return Network.Online;
   });
   const preview = useAppSelector((state) => {
     const datasheet = Selectors.getDatasheet(state);
@@ -526,13 +550,20 @@ const DataSheetPaneBase: FC<React.PropsWithChildren<{ panelLeft?: JSX.Element }>
       />
     </JobTaskProvider>
   );
+  const recoveringOverlayEnabled = !loading && !datasheetErrorCode && isRecoveringNetworkStatus(syncRecoveringStatus);
+  const datasheetMainWithOverlay = (
+    <div className={styles.datasheetMainWithOverlay}>
+      {datasheetMain}
+      <SyncRecoveringOverlay enabled={recoveringOverlayEnabled} status={syncRecoveringStatus} />
+    </div>
+  );
   const childComponent = (
     <AutoSizer style={{ width: '100%', height: '100%' }}>
       {({ width }) =>
         panelSize ? (
           <VikaSplitPanel
             panelLeft={
-              datasheetMain
+              datasheetMainWithOverlay
             }
             panelRight={
               <div style={{ width: '100%', height: '100%' }}>
@@ -557,7 +588,7 @@ const DataSheetPaneBase: FC<React.PropsWithChildren<{ panelLeft?: JSX.Element }>
             className="contentSplitPanel"
           />
         ) : (
-          datasheetMain
+          datasheetMainWithOverlay
         )
       }
     </AutoSizer>
