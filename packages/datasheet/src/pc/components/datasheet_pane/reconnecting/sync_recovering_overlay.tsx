@@ -45,22 +45,33 @@ export const SyncRecoveringOverlay: FC<PropsWithChildren<ISyncRecoveringOverlayP
   useEffect(() => {
     if (!active) {
       setVisible(false);
-      setShowRefresh(false);
       return;
     }
 
     const visibleTimer = window.setTimeout(() => {
       setVisible(true);
     }, 500);
+
+    return () => {
+      window.clearTimeout(visibleTimer);
+    };
+  }, [active, status]);
+
+  useEffect(() => {
+    setShowRefresh(false);
+
+    if (!active || !visible) {
+      return;
+    }
+
     const refreshTimer = window.setTimeout(() => {
       setShowRefresh(true);
     }, 15000);
 
     return () => {
-      window.clearTimeout(visibleTimer);
       window.clearTimeout(refreshTimer);
     };
-  }, [active, status]);
+  }, [active, visible, status]);
 
   useEffect(() => {
     if (!visible) {
@@ -78,7 +89,7 @@ export const SyncRecoveringOverlay: FC<PropsWithChildren<ISyncRecoveringOverlayP
     window.location.reload();
   }, []);
 
-  if (!visible || !isRecoveringStatus(status)) {
+  if (!active || !visible || !isRecoveringStatus(status)) {
     return null;
   }
 
