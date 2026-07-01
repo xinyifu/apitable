@@ -7,6 +7,11 @@ on:
         description: "Docker image tag, for example selfhost-20260622-1"
         required: true
         type: string
+      allow_overwrite:
+        description: "Allow overwriting an existing GHCR image tag"
+        required: false
+        default: false
+        type: boolean
   push:
     tags:
       - "selfhost-*"
@@ -55,9 +60,65 @@ jobs:
           echo "image_tag=${image_tag}" >> "${GITHUB_OUTPUT}"
           echo "cache_scope=${cache_scope}" >> "${GITHUB_OUTPUT}"
 
+  guard_release_tag:
+    name: Guard release tag
+    needs: resolve
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check image tag availability
+        env:
+          IMAGE_TAG: ${{ needs.resolve.outputs.image_tag }}
+          ALLOW_OVERWRITE: ${{ github.event.inputs.allow_overwrite || 'false' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${ALLOW_OVERWRITE}" == "true" ]]; then
+            echo "Existing GHCR tags may be overwritten for this manual run."
+            exit 0
+          fi
+
+          images=(
+            backend-server
+            room-server
+            web-server
+            init-db
+            init-selfhost-overrides
+            openresty
+            databus-server
+            imageproxy-server
+            init-appdata
+          )
+
+          existing=()
+          for image in "${images[@]}"; do
+            ref="${IMAGE_REGISTRY}/apitable/${image}:${IMAGE_TAG}"
+            if docker buildx imagetools inspect "${ref}" >/dev/null 2>&1; then
+              existing+=("${ref}")
+            fi
+          done
+
+          if ((${#existing[@]})); then
+            printf 'Refusing to overwrite existing image tags:\n' >&2
+            printf '  %s\n' "${existing[@]}" >&2
+            exit 1
+          fi
+
   build_fork_image:
     name: Build fork image (${{ matrix.image }})
-    needs: resolve
+    needs:
+      - resolve
+      - guard_release_tag
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -95,16 +156,38 @@ jobs:
         run: |
           set -euo pipefail
 
-          docker buildx bake --push \
+          build_created="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          image_ref="${IMAGE_REGISTRY}/apitable/${IMAGE_NAME}:${IMAGE_TAG}"
+
+          docker buildx bake --push --provenance=mode=min --sbom=false \
             --set "${BAKE_TARGET}.platform=${PLATFORM}" \
+            --set "${BAKE_TARGET}.args.SEMVER_FULL=${IMAGE_TAG}" \
             --set "${BAKE_TARGET}.cache-from=type=registry,ref=${CACHE_REGISTRY}:${BAKE_TARGET}-${CACHE_SCOPE}" \
             --set "${BAKE_TARGET}.cache-to=type=registry,ref=${CACHE_REGISTRY}:${BAKE_TARGET}-${CACHE_SCOPE},mode=max" \
-            --set "${BAKE_TARGET}.tags=${IMAGE_REGISTRY}/apitable/${IMAGE_NAME}:${IMAGE_TAG}" \
+            --set "${BAKE_TARGET}.labels.org.opencontainers.image.created=${build_created}" \
+            --set "${BAKE_TARGET}.labels.org.opencontainers.image.revision=${GITHUB_SHA}" \
+            --set "${BAKE_TARGET}.labels.org.opencontainers.image.source=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" \
+            --set "${BAKE_TARGET}.labels.org.opencontainers.image.title=apitable/${IMAGE_NAME}" \
+            --set "${BAKE_TARGET}.labels.org.opencontainers.image.version=${IMAGE_TAG}" \
+            --set "${BAKE_TARGET}.tags=${image_ref}" \
             "${BAKE_TARGET}"
+
+          target_digest="$(docker buildx imagetools inspect "${image_ref}" | awk '/Digest:/ {print $2; exit}')"
+
+          {
+            echo "### Built ${IMAGE_NAME}"
+            echo
+            echo "| Item | Digest |"
+            echo "| --- | --- |"
+            echo "| Target | \`${image_ref}@${target_digest}\` |"
+            echo
+          } >> "${GITHUB_STEP_SUMMARY}"
 
   build_light_images:
     name: Build light fork images
-    needs: resolve
+    needs:
+      - resolve
+      - guard_release_tag
     runs-on: ubuntu-latest
     steps:
       - name: Fetch sources
@@ -138,17 +221,39 @@ jobs:
 
           for target in "${!targets[@]}"; do
             image="${targets[$target]}"
-            docker buildx bake --push \
+            build_created="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            image_ref="${IMAGE_REGISTRY}/apitable/${image}:${IMAGE_TAG}"
+
+            docker buildx bake --push --provenance=mode=min --sbom=false \
               --set "${target}.platform=${PLATFORM}" \
+              --set "${target}.args.SEMVER_FULL=${IMAGE_TAG}" \
               --set "${target}.cache-from=type=registry,ref=${CACHE_REGISTRY}:${target}-${CACHE_SCOPE}" \
               --set "${target}.cache-to=type=registry,ref=${CACHE_REGISTRY}:${target}-${CACHE_SCOPE},mode=max" \
-              --set "${target}.tags=${IMAGE_REGISTRY}/apitable/${image}:${IMAGE_TAG}" \
+              --set "${target}.labels.org.opencontainers.image.created=${build_created}" \
+              --set "${target}.labels.org.opencontainers.image.revision=${GITHUB_SHA}" \
+              --set "${target}.labels.org.opencontainers.image.source=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" \
+              --set "${target}.labels.org.opencontainers.image.title=apitable/${image}" \
+              --set "${target}.labels.org.opencontainers.image.version=${IMAGE_TAG}" \
+              --set "${target}.tags=${image_ref}" \
               "${target}"
+
+            target_digest="$(docker buildx imagetools inspect "${image_ref}" | awk '/Digest:/ {print $2; exit}')"
+
+            {
+              echo "### Built ${image}"
+              echo
+              echo "| Item | Digest |"
+              echo "| --- | --- |"
+              echo "| Target | \`${image_ref}@${target_digest}\` |"
+              echo
+            } >> "${GITHUB_STEP_SUMMARY}"
           done
 
   mirror_upstream_image:
     name: Mirror upstream image (${{ matrix.image }})
-    needs: resolve
+    needs:
+      - resolve
+      - guard_release_tag
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -158,44 +263,51 @@ jobs:
           - imageproxy-server
           - init-appdata
     steps:
-      - name: Login to GHCR
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install skopeo
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y skopeo
 
-      - name: Pull, retag, and push ${{ matrix.image }}
+      - name: Copy upstream image ${{ matrix.image }}
         env:
           IMAGE_TAG: ${{ needs.resolve.outputs.image_tag }}
           IMAGE_NAME: ${{ matrix.image }}
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
 
-          source="docker.io/apitable/${IMAGE_NAME}:${UPSTREAM_IMAGE_TAG}"
-          target="${IMAGE_REGISTRY}/apitable/${IMAGE_NAME}:${IMAGE_TAG}"
+          source="docker://docker.io/apitable/${IMAGE_NAME}:${UPSTREAM_IMAGE_TAG}"
+          target="docker://${IMAGE_REGISTRY}/apitable/${IMAGE_NAME}:${IMAGE_TAG}"
+          target_ref="${IMAGE_REGISTRY}/apitable/${IMAGE_NAME}:${IMAGE_TAG}"
 
-          docker pull --platform "${PLATFORM}" "${source}"
-          source_digest="$(docker inspect --format='{{index .RepoDigests 0}}' "${source}")"
-          docker tag "${source}" "${target}"
-          docker push "${target}"
-          target_digest="$(docker buildx imagetools inspect "${target}" | awk '/Digest:/ {print $2; exit}')"
+          source_digest="$(skopeo inspect --override-os linux --override-arch amd64 --format '{{.Digest}}' "${source}")"
+          skopeo copy \
+            --override-os linux \
+            --override-arch amd64 \
+            --dest-creds "${GHCR_USERNAME}:${GHCR_TOKEN}" \
+            "${source}" \
+            "${target}"
+          target_digest="$(skopeo inspect --creds "${GHCR_USERNAME}:${GHCR_TOKEN}" --format '{{.Digest}}' "${target}")"
 
-          cat <<EOF >> "${GITHUB_STEP_SUMMARY}"
-          ### Mirrored ${IMAGE_NAME}
-
-          | Item | Digest |
-          | --- | --- |
-          | Source | \`${source_digest}\` |
-          | Target | \`${target}@${target_digest}\` |
-
-          EOF
+          {
+            echo "### Mirrored ${IMAGE_NAME}"
+            echo
+            echo "| Item | Digest |"
+            echo "| --- | --- |"
+            echo "| Source | \`${source_digest}\` |"
+            echo "| Target | \`${target_ref}@${target_digest}\` |"
+            echo
+          } >> "${GITHUB_STEP_SUMMARY}"
 
   publish_summary:
     name: Publish summary
     needs:
       - resolve
+      - guard_release_tag
       - build_fork_image
       - build_light_images
       - mirror_upstream_image
@@ -205,6 +317,7 @@ jobs:
       - name: Write self-host release summary
         env:
           IMAGE_TAG: ${{ needs.resolve.outputs.image_tag }}
+          TAG_GUARD_RESULT: ${{ needs.guard_release_tag.result }}
           BUILD_RESULT: ${{ needs.build_fork_image.result }}
           LIGHT_BUILD_RESULT: ${{ needs.build_light_images.result }}
           MIRROR_RESULT: ${{ needs.mirror_upstream_image.result }}
@@ -218,6 +331,7 @@ jobs:
           | Image tag | \`${IMAGE_TAG}\` |
           | Registry | \`ghcr.io/xinyifu\` |
           | Platform | \`${PLATFORM}\` |
+          | Tag guard | \`${TAG_GUARD_RESULT}\` |
           | Heavy fork image build | \`${BUILD_RESULT}\` |
           | Light fork image build | \`${LIGHT_BUILD_RESULT}\` |
           | Upstream image mirror | \`${MIRROR_RESULT}\` |
@@ -252,5 +366,5 @@ jobs:
           EOF
 
       - name: Fail summary when publish failed
-        if: ${{ needs.build_fork_image.result != 'success' || needs.build_light_images.result != 'success' || needs.mirror_upstream_image.result != 'success' }}
+        if: ${{ needs.guard_release_tag.result != 'success' || needs.build_fork_image.result != 'success' || needs.build_light_images.result != 'success' || needs.mirror_upstream_image.result != 'success' }}
         run: exit 1

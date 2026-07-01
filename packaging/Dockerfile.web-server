@@ -23,7 +23,7 @@ COPY packages/api-client/package.json ./packages/api-client/
 COPY packages/datasheet/package.json ./packages/datasheet/
 
 RUN --mount=type=cache,id=apitable-web-pnpm-store,target=/root/.local/share/pnpm/store \
-    pnpm install --filter @apitable/datasheet... --filter root
+    pnpm install --filter @apitable/datasheet... --filter root --frozen-lockfile
 
 # stage builder
 FROM apitable/nodepy:16.15.0-alpine AS builder

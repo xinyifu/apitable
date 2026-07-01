@@ -17,7 +17,7 @@ COPY packages/databus-wasm-nodejs/package.json ./packages/databus-wasm-nodejs/
 COPY packages/room-server/package.json ./packages/room-server/
 
 RUN --mount=type=cache,id=apitable-room-pnpm-store,target=/root/.local/share/pnpm/store \
-    pnpm install --filter @apitable/room-server --filter root
+    pnpm install --filter @apitable/room-server --filter root --frozen-lockfile
 
 # stage builder
 FROM apitable/node:v16.15.0 AS builder
