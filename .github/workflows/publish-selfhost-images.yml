@@ -30,6 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       image_tag: ${{ steps.meta.outputs.image_tag }}
+      cache_scope: ${{ steps.meta.outputs.cache_scope }}
     steps:
       - name: Resolve image tag
         id: meta
@@ -48,7 +49,11 @@ jobs:
             exit 1
           fi
 
+          cache_scope="${GITHUB_REF_NAME:-manual}"
+          cache_scope="$(echo "${cache_scope}" | sed -E 's/[^A-Za-z0-9_.-]+/-/g')"
+
           echo "image_tag=${image_tag}" >> "${GITHUB_OUTPUT}"
+          echo "cache_scope=${cache_scope}" >> "${GITHUB_OUTPUT}"
 
   build_fork_image:
     name: Build fork image (${{ matrix.image }})
@@ -64,12 +69,6 @@ jobs:
             image: room-server
           - target: web-server
             image: web-server
-          - target: init-db
-            image: init-db
-          - target: init-selfhost-overrides
-            image: init-selfhost-overrides
-          - target: openresty
-            image: openresty
     steps:
       - name: Fetch sources
         uses: actions/checkout@v5
@@ -89,6 +88,7 @@ jobs:
           IMAGE_TAG: ${{ needs.resolve.outputs.image_tag }}
           SEMVER_FULL: ${{ needs.resolve.outputs.image_tag }}
           CACHE_REGISTRY: ghcr.io/xinyifu/apitable/build-cache
+          CACHE_SCOPE: ${{ needs.resolve.outputs.cache_scope }}
           BAKE_TARGET: ${{ matrix.target }}
           IMAGE_NAME: ${{ matrix.image }}
         shell: bash
@@ -97,10 +97,54 @@ jobs:
 
           docker buildx bake --push \
             --set "${BAKE_TARGET}.platform=${PLATFORM}" \
-            --set "${BAKE_TARGET}.cache-from=type=registry,ref=${CACHE_REGISTRY}:${BAKE_TARGET}" \
-            --set "${BAKE_TARGET}.cache-to=type=registry,ref=${CACHE_REGISTRY}:${BAKE_TARGET},mode=max" \
+            --set "${BAKE_TARGET}.cache-from=type=registry,ref=${CACHE_REGISTRY}:${BAKE_TARGET}-${CACHE_SCOPE}" \
+            --set "${BAKE_TARGET}.cache-to=type=registry,ref=${CACHE_REGISTRY}:${BAKE_TARGET}-${CACHE_SCOPE},mode=max" \
             --set "${BAKE_TARGET}.tags=${IMAGE_REGISTRY}/apitable/${IMAGE_NAME}:${IMAGE_TAG}" \
             "${BAKE_TARGET}"
+
+  build_light_images:
+    name: Build light fork images
+    needs: resolve
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch sources
+        uses: actions/checkout@v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push light images
+        env:
+          IMAGE_TAG: ${{ needs.resolve.outputs.image_tag }}
+          SEMVER_FULL: ${{ needs.resolve.outputs.image_tag }}
+          CACHE_REGISTRY: ghcr.io/xinyifu/apitable/build-cache
+          CACHE_SCOPE: ${{ needs.resolve.outputs.cache_scope }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          declare -A targets=(
+            [init-db]=init-db
+            [init-selfhost-overrides]=init-selfhost-overrides
+            [openresty]=openresty
+          )
+
+          for target in "${!targets[@]}"; do
+            image="${targets[$target]}"
+            docker buildx bake --push \
+              --set "${target}.platform=${PLATFORM}" \
+              --set "${target}.cache-from=type=registry,ref=${CACHE_REGISTRY}:${target}-${CACHE_SCOPE}" \
+              --set "${target}.cache-to=type=registry,ref=${CACHE_REGISTRY}:${target}-${CACHE_SCOPE},mode=max" \
+              --set "${target}.tags=${IMAGE_REGISTRY}/apitable/${image}:${IMAGE_TAG}" \
+              "${target}"
+          done
 
   mirror_upstream_image:
     name: Mirror upstream image (${{ matrix.image }})
@@ -133,14 +177,27 @@ jobs:
           target="${IMAGE_REGISTRY}/apitable/${IMAGE_NAME}:${IMAGE_TAG}"
 
           docker pull --platform "${PLATFORM}" "${source}"
+          source_digest="$(docker inspect --format='{{index .RepoDigests 0}}' "${source}")"
           docker tag "${source}" "${target}"
           docker push "${target}"
+          target_digest="$(docker buildx imagetools inspect "${target}" | awk '/Digest:/ {print $2; exit}')"
+
+          cat <<EOF >> "${GITHUB_STEP_SUMMARY}"
+          ### Mirrored ${IMAGE_NAME}
+
+          | Item | Digest |
+          | --- | --- |
+          | Source | \`${source_digest}\` |
+          | Target | \`${target}@${target_digest}\` |
+
+          EOF
 
   publish_summary:
     name: Publish summary
     needs:
       - resolve
       - build_fork_image
+      - build_light_images
       - mirror_upstream_image
     runs-on: ubuntu-latest
     if: ${{ always() }}
@@ -149,6 +206,7 @@ jobs:
         env:
           IMAGE_TAG: ${{ needs.resolve.outputs.image_tag }}
           BUILD_RESULT: ${{ needs.build_fork_image.result }}
+          LIGHT_BUILD_RESULT: ${{ needs.build_light_images.result }}
           MIRROR_RESULT: ${{ needs.mirror_upstream_image.result }}
         shell: bash
         run: |
@@ -160,7 +218,8 @@ jobs:
           | Image tag | \`${IMAGE_TAG}\` |
           | Registry | \`ghcr.io/xinyifu\` |
           | Platform | \`${PLATFORM}\` |
-          | Fork image build | \`${BUILD_RESULT}\` |
+          | Heavy fork image build | \`${BUILD_RESULT}\` |
+          | Light fork image build | \`${LIGHT_BUILD_RESULT}\` |
           | Upstream image mirror | \`${MIRROR_RESULT}\` |
 
           ## Published image groups
@@ -193,5 +252,5 @@ jobs:
           EOF
 
       - name: Fail summary when publish failed
-        if: ${{ needs.build_fork_image.result != 'success' || needs.mirror_upstream_image.result != 'success' }}
+        if: ${{ needs.build_fork_image.result != 'success' || needs.build_light_images.result != 'success' || needs.mirror_upstream_image.result != 'success' }}
         run: exit 1

@@ -16,7 +16,8 @@ COPY packages/databus-wasm-nodejs/package.json ./packages/databus-wasm-nodejs/
 
 COPY packages/room-server/package.json ./packages/room-server/
 
-RUN pnpm install --filter @apitable/room-server --filter root
+RUN --mount=type=cache,id=apitable-room-pnpm-store,target=/root/.local/share/pnpm/store \
+    pnpm install --filter @apitable/room-server --filter root
 
 # stage builder
 FROM apitable/node:v16.15.0 AS builder
@@ -44,14 +45,15 @@ RUN pnpm run build:sr
 
 ARG KEEP_DEV_DEP
 
-RUN if [ "$KEEP_DEV_DEP" = "" ] ; then pnpm install --filter @apitable/room-server; fi
+RUN --mount=type=cache,id=apitable-room-pnpm-store,target=/root/.local/share/pnpm/store \
+    if [ "$KEEP_DEV_DEP" = "" ] ; then pnpm install --filter @apitable/room-server; fi
 
 # stage runner
 FROM apitable/node:v16.15.0 AS runner
 
 WORKDIR /app
 
-ENV NODE_ENV production
+ENV NODE_ENV=production
 
 ARG SEMVER_FULL
 ENV SEMVER_FULL=${SEMVER_FULL}
@@ -60,7 +62,7 @@ ENV SEMVER_FULL=${SEMVER_FULL}
 COPY --from=builder /app/packages/room-server/app-config.json /root/
 COPY --from=builder /app /app
 
-RUN npm install pm2@latest --global  \
+RUN npm install pm2@5.4.3 --global  \
     && rm -fr packages/*/src
 
 COPY packages/i18n-lang/src/config ./packages/i18n-lang/src/config

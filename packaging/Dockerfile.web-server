@@ -22,7 +22,8 @@ COPY packages/api-client/package.json ./packages/api-client/
 # datasheet main
 COPY packages/datasheet/package.json ./packages/datasheet/
 
-RUN pnpm install
+RUN --mount=type=cache,id=apitable-web-pnpm-store,target=/root/.local/share/pnpm/store \
+    pnpm install --filter @apitable/datasheet... --filter root
 
 # stage builder
 FROM apitable/nodepy:16.15.0-alpine AS builder
@@ -64,10 +65,10 @@ FROM apitable/nodepy:16.15.0-alpine AS runner
 
 WORKDIR /app
 
-ENV NODE_ENV production
+ENV NODE_ENV=production
 
 # Uncomment the following line in case you want to disable telemetry during runtime.
-ENV NEXT_TELEMETRY_DISABLED 1
+ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 
@@ -88,6 +89,6 @@ USER nextjs
 
 EXPOSE 8080
 
-ENV PORT 8080
+ENV PORT=8080
 
 CMD [ "node", "server.js" ]
