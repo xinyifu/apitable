@@ -17,6 +17,9 @@
  */
 
 import { ICheckboxField } from '../../../types/field_types';
+import { FOperator } from '../../../types/view_types';
+import { mockState } from '../../../formula_parser/__tests__/mock_state';
+import { Field } from '../index';
 import { commonTestSuit, getValidCellValue, validProperty } from './common';
 
 const checkboxField: ICheckboxField = {
@@ -132,5 +135,16 @@ describe('Check the checkbox field property format', () => {
         icon: ''
       }
     } as any)).toEqual(false);
+  });
+});
+
+describe('Checkbox filter compatibility', () => {
+  it('supports legacy array filter values', function() {
+    const fieldMethod = Field.bindContext(checkboxField, mockState as any);
+
+    expect(fieldMethod.isMeetFilter(FOperator.Is, null, [false] as any)).toEqual(true);
+    expect(fieldMethod.isMeetFilter(FOperator.Is, true, [false] as any)).toEqual(false);
+    expect(fieldMethod.isMeetFilter(FOperator.Is, true, [true] as any)).toEqual(true);
+    expect(fieldMethod.isMeetFilter(FOperator.Is, null, [true] as any)).toEqual(false);
   });
 });

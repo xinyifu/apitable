@@ -1,5 +1,15 @@
 // import { AxiosResponse } from 'axios';
-import { StatusCode, databus, IApiWrapper, IReduxState, IServerDatasheetPack, StoreActions, IServerDashboardPack } from '@apitable/core';
+import {
+  StatusCode,
+  databus,
+  IApiWrapper,
+  IReduxState,
+  IServerDatasheetPack,
+  StoreActions,
+  IServerDashboardPack,
+  shouldSuppressRecoveringRequestError,
+  ResourceType,
+} from '@apitable/core';
 
 export class ClientDataLoader implements databus.IDataLoader {
   async loadDatasheetPack(datasheetId: string, options: IClientLoadDatasheetPackOptions): Promise<IServerDatasheetPack | null> {
@@ -19,6 +29,15 @@ export class ClientDataLoader implements databus.IDataLoader {
         dispatch(StoreActions.deleteNode({ nodeId: datasheetId, parentId: state.catalogTree.treeNodesMap[datasheetId]!.parentId }));
       }
     } catch (e) {
+      if (shouldSuppressRecoveringRequestError(e, getState(), {
+        resourceId: datasheetId,
+        resourceType: ResourceType.Datasheet,
+        requireExistingDatasheet: true,
+      })) {
+        console.warn('[sync-recovering] suppress temporary dataPack error', e);
+        dispatch(StoreActions.datasheetErrorCode(datasheetId, null));
+        return null;
+      }
       dispatch(StoreActions.datasheetErrorCode(datasheetId, StatusCode.COMMON_ERR));
       throw e;
     }

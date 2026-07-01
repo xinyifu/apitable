@@ -91,7 +91,6 @@ import {
   SET_SEARCH_RESULT_CURSOR_INDEX,
   SET_VIEW_DERIVATION,
   SET_VIEW_PROPERTY,
-  SWITCH_ACTIVE_PANEL,
   TOGGLE_CALENDAR_GRID,
   TOGGLE_CALENDAR_GUIDE_STATUS,
   TOGGLE_CALENDAR_SETTING_PANEL,
@@ -114,6 +113,8 @@ import { AnyAction, Dispatch } from 'redux';
 import { batchActions } from 'redux-batched-actions';
 import { checkInnerConsistency } from 'utils';
 import { checkLinkConsistency } from 'utils/link_consistency';
+import { ResourceType } from 'types';
+import { shouldSuppressRecoveringRequestError } from 'utils/sync_recovering_request';
 import {
   fetchDatasheetPack,
   fetchEmbedDatasheetPack,
@@ -320,10 +321,22 @@ export function fetchDatasheet(datasheetId: string, successCb?: () => void, over
           return Promise.resolve({ datasheetId, responseBody: response.data, dispatch, getState });
         })
         .catch((e) => {
+          if (shouldSuppressRecoveringRequestError(e, getState(), {
+            resourceId: datasheetId,
+            resourceType: ResourceType.Datasheet,
+            requireExistingDatasheet: true,
+          })) {
+            console.warn('[sync-recovering] suppress temporary dataPack error', e);
+            dispatch(datasheetErrorCode(datasheetId, null));
+            return { datasheetId, isSuppressed: true } as any;
+          }
           dispatch(datasheetErrorCode(datasheetId, StatusCode.COMMON_ERR));
           throw e;
         })
         .then((props) => {
+          if (!props || 'isSuppressed' in props) {
+            return;
+          }
           // recordIds exits means that only part of recordsIds data is needed @boris
           fetchDatasheetPackSuccess({ ...props, isPartOfData: Boolean(recordIds), forceFetch: overWrite });
           props.responseBody.success ? successCb && successCb() : failCb && failCb();
@@ -365,6 +378,15 @@ export function fetchForeignDatasheet(resourceId: string, foreignDstId: string, 
           return Promise.resolve({ datasheetId: foreignDstId, responseBody: response.data, dispatch, getState });
         })
         .catch((e) => {
+          if (shouldSuppressRecoveringRequestError(e, getState(), {
+            resourceId: foreignDstId,
+            resourceType: ResourceType.Datasheet,
+            requireExistingDatasheet: true,
+          })) {
+            console.warn('[sync-recovering] suppress temporary foreign dataPack error', e);
+            dispatch(datasheetErrorCode(foreignDstId, null));
+            return { datasheetId: foreignDstId, isSuppressed: true } as any;
+          }
           if (state.catalogTree.treeNodesMap[foreignDstId]) {
             dispatch(deleteNode({ nodeId: foreignDstId, parentId: state.catalogTree.treeNodesMap[foreignDstId]!.parentId }));
           }
@@ -372,6 +394,9 @@ export function fetchForeignDatasheet(resourceId: string, foreignDstId: string, 
           throw e;
         })
         .then((props) => {
+          if (!props || 'isSuppressed' in props) {
+            return;
+          }
           fetchDatasheetPackSuccess({ ...props, forceFetch });
           if (props.responseBody.success) {
             if (!shareId && !embedId && state.pageParams.datasheetId === resourceId) {

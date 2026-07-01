@@ -17,8 +17,10 @@
  */
 
 import * as ActionConstants from 'modules/shared/store/action_constants';
-import { ISubscriptions } from 'exports/store/interfaces';
+import { ISubscriptions, IReduxState } from 'exports/store/interfaces';
 import { getSubscriptions } from '../../api/datasheet_api';
+import { shouldSuppressRecoveringRequestError } from 'utils/sync_recovering_request';
+import { ResourceType } from 'types';
 
 /**
  * get current datasheet/mirrors' subscribed(followed) record ids
@@ -26,11 +28,24 @@ import { getSubscriptions } from '../../api/datasheet_api';
  * @param mirrorId
  * @returns
  */
-export const getSubscriptionsAction = (datasheetId: string, mirrorId?: string) => async (dispatch: any) => {
-  const { data } = await getSubscriptions(datasheetId, mirrorId);
+export const getSubscriptionsAction = (datasheetId: string, mirrorId?: string) => async (dispatch: any, getState: () => IReduxState) => {
+  try {
+    const { data } = await getSubscriptions(datasheetId, mirrorId);
 
-  if (data?.success) {
-    dispatch(setSubscriptionsAction(data.data || []));
+    if (data?.success) {
+      dispatch(setSubscriptionsAction(data.data || []));
+    }
+  } catch (e) {
+    const resourceId = mirrorId || datasheetId;
+    const resourceType = mirrorId ? ResourceType.Mirror : ResourceType.Datasheet;
+    if (shouldSuppressRecoveringRequestError(e, getState(), {
+      resourceId,
+      resourceType,
+    })) {
+      console.warn('[sync-recovering] skip subscriptions during recovery', e);
+      return;
+    }
+    throw e;
   }
 };
 

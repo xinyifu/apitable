@@ -47,3 +47,4 @@ import * as databus from './databus';
 export { databus, WasmApi };
 
 export { JOTApply } from './modules/database/store/reducers/resource';
+export * from './utils/sync_recovering_request';

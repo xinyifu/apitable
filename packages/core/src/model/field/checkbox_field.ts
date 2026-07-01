@@ -84,10 +84,14 @@ export class CheckboxField extends Field {
     return CheckboxField._acceptFilterOperators;
   }
 
+  static normalizeFilterValue(conditionValue: IFilterCondition['value']) {
+    return Array.isArray(conditionValue) ? conditionValue[0] : conditionValue;
+  }
+
   static _isMeetFilter(operator: FOperator, cellValue: ICellValue, conditionValue: IFilterCondition['value']) {
     switch (operator) {
       case FOperator.Is:
-        return Boolean(conditionValue) === Boolean(cellValue);
+        return Boolean(CheckboxField.normalizeFilterValue(conditionValue)) === Boolean(cellValue);
       default: {
         console.warn('Method should be overwrite!');
         return true;
