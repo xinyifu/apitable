@@ -5,6 +5,6 @@ RUN apk add --no-cache mariadb-client
 COPY apply-overrides.sh /usr/local/bin/apply-overrides.sh
 COPY sql /overrides/sql
 
-RUN chmod +x /usr/local/bin/apply-overrides.sh
+RUN sed -i 's/\r$//' /usr/local/bin/apply-overrides.sh && chmod +x /usr/local/bin/apply-overrides.sh
 
 ENTRYPOINT ["apply-overrides.sh"]

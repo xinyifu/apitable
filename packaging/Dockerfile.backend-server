@@ -2,6 +2,7 @@ FROM amazoncorretto:17 AS builder
 
 WORKDIR /app
 COPY ./backend-server/. .
+RUN sed -i 's/\r$//' ./gradlew && chmod +x ./gradlew
 RUN ./gradlew -v
 RUN ./gradlew build -x test
 
