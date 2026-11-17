@@ -338,11 +338,11 @@ if (response!.data?.isAllowOverLimit) {
 
 这是对当前代码最小的改法：只改 `DefaultSubscriptionFeature.java` 和 room-server 的 QPS 配置，不动校验逻辑。
 
-把有限值改成足够大的正数：
+当前自部署开发分支与发布分支统一采用以下有限值：席位 1000、文件节点 1 万、单表行数 10 万、空间总行数 1 亿。席位、文件节点和单表行数不再使用早期的 100 万配置，空间总行数则由 1000 万提高到 1 亿。
 
 ```java
 public Seat getSeat() {
-    return new Seat(1000000L);
+    return new Seat(1000L);
 }
 
 public CapacitySize getCapacitySize() {
@@ -350,11 +350,11 @@ public CapacitySize getCapacitySize() {
 }
 
 public FileNodeNums getFileNodeNums() {
-    return new FileNodeNums(1000000L);
+    return new FileNodeNums(10000L);
 }
 
 public RowsPerSheet getRowsPerSheet() {
-    return new RowsPerSheet(1000000L);
+    return new RowsPerSheet(100000L);
 }
 
 public ArchivedRowsPerSheet getArchivedRowsPerSheet() {
@@ -362,7 +362,7 @@ public ArchivedRowsPerSheet getArchivedRowsPerSheet() {
 }
 
 public TotalRows getTotalRows() {
-    return new TotalRows(10000000L);
+    return new TotalRows(100000000L);
 }
 
 public ApiQpsNums getApiQpsNums() {
@@ -490,6 +490,8 @@ if (skipUsageVerification) {
 6. 前端空间订阅/用量页面确认展示值与修改后的默认权益一致。
 
 ### 2026-06-21 本地源码运行实测
+
+以下是当时的历史实测记录，其中的限额数值不代表当前默认值；当前限额见上文方案 A。
 
 本次没有做 docker 镜像编译。backend 用 Gradle 源码运行在 `8081`，room-server 用本地 Node 16.15.0 + pnpm 8.6.12 源码运行在 `3333`，MySQL/Redis/RabbitMQ/MinIO/databus 使用 docker compose 数据服务。
 
