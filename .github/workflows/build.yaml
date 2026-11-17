@@ -3,6 +3,7 @@ name: build
 on:
   push:
     branches:
+      - 'main'
       - 'develop'
       - 'release/**'
     paths-ignore:
@@ -11,7 +12,7 @@ on:
     tags:
       - 'v*.*.*'
   pull_request:
-    branches: [ develop ]
+    branches: [ main, develop ]
     # paths-ignore:
     #   - '**.md'
     #   - 'docs/**'
