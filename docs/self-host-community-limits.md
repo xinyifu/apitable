@@ -15,7 +15,7 @@
 - `backend-server/application/src/main/java/com/apitable/interfaces/billing/model/DefaultSubscriptionInfo.java`
 - `backend-server/application/src/main/java/com/apitable/interfaces/billing/model/DefaultSubscriptionFeature.java`
 
-当前 `develop` 中，默认社区版订阅是：
+官方代码基线 `upstream-sync` 中，默认社区版订阅是：
 
 ```java
 // DefaultSubscriptionInfo.java

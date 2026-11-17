@@ -14,9 +14,17 @@
 
 ## 未发布
 
+### 分支命名调整（2026-11-17）
+
+- `main`：仓库默认分支，维护自托管发布版本、GHCR 工作流和发布标签。
+- `develop`：日常自托管开发分支，承载功能、修复和开发文档。
+- `upstream-sync`：官方代码同步基线，跟踪 `upstream/develop`，在 `origin` 保留同名分支。
+
+本次只调整分支名称、约定及 CI 引用，保留原有提交历史和发布标签；未同步新的官方提交，也未发布镜像。
+
 ### 开发分支回补发布配置（2026-11-17）
 
-将 `codex/ghcr-selfhost-actions` 中已有的限额、运行配置和通用构建改进回补到 `codex/self-host-limits-permissions`，保留开发文档；GHCR 发布工作流仍由发布分支维护。
+将 `main` 中已有的限额、运行配置和通用构建改进回补到 `develop`，保留开发文档；GHCR 发布工作流仍由 `main` 维护。
 
 - 默认限额统一为席位 1000、文件节点 1 万、单表行数 10 万、空间总行数 1 亿，详见 `docs/self-host-community-limits.md`。
 - `.env` 增加 `MYSQL_LOWER_CASE_TABLE_NAMES=0`，`docker-compose.yaml` 使用 `${MYSQL_LOWER_CASE_TABLE_NAMES:-2}` 传入 MySQL；已有数据库应通过部署环境保留初始化时使用的值。
