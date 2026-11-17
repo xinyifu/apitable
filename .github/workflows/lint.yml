@@ -12,10 +12,10 @@ name: Lint
 
 on:
   push:
-    branches: [ "develop", "release/v*" ]
+    branches: [ "main", "develop", "release/v*" ]
   pull_request:
     # The branches below must be a subset of the branches above
-    branches: [ "develop" ]
+    branches: [ "main", "develop" ]
 
 jobs:
   eslint:
@@ -87,7 +87,7 @@ jobs:
         uses: github/super-linter@v4
         env:
           VALIDATE_ALL_CODEBASE: false
-          DEFAULT_BRANCH: develop
+          DEFAULT_BRANCH: main
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VALIDATE_MARKDOWN: false
           VALIDATE_NATURAL_LANGUAGE: false
