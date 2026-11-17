@@ -14,6 +14,18 @@
 
 ## 未发布
 
+### 开发分支回补发布配置（2026-11-17）
+
+将 `codex/ghcr-selfhost-actions` 中已有的限额、运行配置和通用构建改进回补到 `codex/self-host-limits-permissions`，保留开发文档；GHCR 发布工作流仍由发布分支维护。
+
+- 默认限额统一为席位 1000、文件节点 1 万、单表行数 10 万、空间总行数 1 亿，详见 `docs/self-host-community-limits.md`。
+- `.env` 增加 `MYSQL_LOWER_CASE_TABLE_NAMES=0`，`docker-compose.yaml` 使用 `${MYSQL_LOWER_CASE_TABLE_NAMES:-2}` 传入 MySQL；已有数据库应通过部署环境保留初始化时使用的值。
+- `.env.ghcr-local` 的 `SERVER_DOMAIN` 改为 `http://127.0.0.1:3000`，与网关端口和 `PUBLIC_URL` 一致。
+- 本地配置中的 databus-server、imageproxy-server、init-appdata 镜像标签从 `selfhost-20260622-1` 同步到 `selfhost-20260625-2`；新增 `scripts/selfhost/set-image-tag.sh`，用于统一修改本地镜像标签。
+- 回补 Docker 构建上下文排除规则、Gradle/pnpm 缓存、frozen lockfile 配置、锁文件声明元数据修正和 PM2 版本固定。
+
+本次仅回补源码和配置，未重新发布镜像，也未执行构建或运行验证。
+
 ### 新增 init-selfhost-overrides
 
 目的：

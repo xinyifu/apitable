@@ -3,6 +3,17 @@ node_modules
 dist
 scripts
 packages/datasheet/web_build
+.agents
+.cache
+.codex
+.data
+.do
+.playwright-cli
+output
+**/.gradle
+**/build
+**/dist
+docs
 
 # All secrets
 **/.env.local

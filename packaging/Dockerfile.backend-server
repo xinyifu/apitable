@@ -1,10 +1,26 @@
 FROM amazoncorretto:17 AS builder
 
 WORKDIR /app
-COPY ./backend-server/. .
+
+COPY ./backend-server/gradlew ./backend-server/gradle.properties ./backend-server/settings.gradle ./backend-server/build.gradle ./
+COPY ./backend-server/gradle ./gradle
+COPY ./backend-server/buildSrc ./buildSrc
+COPY ./backend-server/application/build.gradle ./application/build.gradle
+COPY ./backend-server/code-coverage-report/build.gradle ./code-coverage-report/build.gradle
+COPY ./backend-server/shared/core/build.gradle ./shared/core/build.gradle
+COPY ./backend-server/shared/starters/amqp/build.gradle ./shared/starters/amqp/build.gradle
+COPY ./backend-server/shared/starters/beetl/build.gradle ./shared/starters/beetl/build.gradle
+COPY ./backend-server/shared/starters/databus/build.gradle ./shared/starters/databus/build.gradle
+COPY ./backend-server/shared/starters/mail/build.gradle ./shared/starters/mail/build.gradle
+COPY ./backend-server/shared/starters/oss/build.gradle ./shared/starters/oss/build.gradle
+COPY ./backend-server/shared/starters/sms/build.gradle ./shared/starters/sms/build.gradle
+COPY ./backend-server/shared/starters/socketio/build.gradle ./shared/starters/socketio/build.gradle
 RUN sed -i 's/\r$//' ./gradlew && chmod +x ./gradlew
-RUN ./gradlew -v
-RUN ./gradlew build -x test
+RUN --mount=type=cache,id=apitable-backend-gradle,target=/root/.gradle,sharing=locked ./gradlew --no-daemon -v
+RUN --mount=type=cache,id=apitable-backend-gradle,target=/root/.gradle,sharing=locked ./gradlew --no-daemon dependencies >/dev/null || true
+
+COPY ./backend-server/. .
+RUN --mount=type=cache,id=apitable-backend-gradle,target=/root/.gradle,sharing=locked ./gradlew --no-daemon build -x test
 
 
 FROM amazoncorretto:17
