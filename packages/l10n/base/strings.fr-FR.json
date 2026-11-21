@@ -3197,7 +3197,7 @@
   "max_kanban_views_in_space": "Le nombre maximum de vues Kanban à utiliser dans l'espace est de ${specification}. Jusqu'à présent, ${usage} a été utilisé et vous pouvez effectuer une mise à niveau pour obtenir une utilisation plus élevée.",
   "max_message_credits": "Le nombre maximum de crédits Al à utiliser dans AI agent est ${specification}. Jusqu'à présent, ${usage} a été utilisé, et vous pouvez mettre à niveau pour obtenir une utilisation élevée.",
   "max_mirror_nums": "Le nombre maximum de miroirs à utiliser dans l'espace est ${specification}. Jusqu'à présent, ${usage} a été utilisé et vous pouvez effectuer une mise à niveau pour obtenir une utilisation plus élevée.",
-  "max_record_num_per_dst": "La limite actuelle pour une seule feuille de données est de 50000 lignes",
+  "max_record_num_per_dst": "La limite actuelle pour une seule feuille de données est de 100000 lignes",
   "max_records": "Maximum : ${count}",
   "max_remain_record_activity_days": "Cet espace prend en charge l'affichage de l'activité d'enregistrement dans les ${specification} jours, mettez à niveau pour en voir plus",
   "max_remain_timemachine_days": "L'espace n'affiche que l'activité d'enregistrement dans les ${specification} jours, mettez à niveau pour afficher plus d'activité d'enregistrement.",

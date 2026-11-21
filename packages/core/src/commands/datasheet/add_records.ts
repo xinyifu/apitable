@@ -43,7 +43,7 @@ export interface IAddRecordsOptions {
 }
 
 export type IAddRecordsResult = string[];
-const MAX_RECORD_NUM = 50000;
+const MAX_RECORD_NUM = 100000;
 
 export const addRecords: ICollaCommandDef<IAddRecordsOptions, IAddRecordsResult> = {
   undoable: true,

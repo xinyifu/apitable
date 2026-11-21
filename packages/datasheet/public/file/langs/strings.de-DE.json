@@ -3243,7 +3243,7 @@
   "max_kanban_views_in_space": "Die maximale Anzahl an Kanban-Ansichten, die im Raum verwendet werden sollen, beträgt ${specification}. Bisher wurde ${usage} verwendet, und Sie können upgraden, um eine höhere Nutzung zu erhalten.",
   "max_message_credits": "Die maximale Anzahl an Al-Credits, die im AI-Agent verwendet werden können, beträgt ${specification}. Bisher wurde ${usage} verwendet, und Sie können ein Upgrade durchführen, um eine höhere Nutzung zu erzielen.",
   "max_mirror_nums": "Die maximale Anzahl von Spiegeln, die im Raum verwendet werden sollen, ist ${specification}. Bisher wurde ${usage} verwendet, und Sie können upgraden, um eine höhere Nutzung zu erhalten.",
-  "max_record_num_per_dst": "Die aktuelle Grenze für ein einzelnes Datenblatt beträgt 50000 Zeilen",
+  "max_record_num_per_dst": "Die aktuelle Grenze für ein einzelnes Datenblatt beträgt 100000 Zeilen",
   "max_records": "Maximum: ${count}",
   "max_remain_record_activity_days": "Dieser Bereich unterstützt die Anzeige von Datensatzaktivitäten innerhalb von ${specification} Tagen, Upgrade, um mehr anzuzeigen",
   "max_remain_timemachine_days": "Der Bereich zeigt nur die Datensatzaktivität innerhalb von ${specification} Tagen an, aktualisieren Sie, um mehr Datensatzaktivität anzuzeigen.",

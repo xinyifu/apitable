@@ -3244,7 +3244,7 @@
   "max_kanban_views_in_space": "空間站的看板視圖數上限為 ${specification} 個，當前已創建 ${usage} 個，升級可獲得更高用量。",
   "max_message_credits": "AI 助手中使用的Al Credit的最大數量為${specification}。到目前為止，${usage}已經使用，您可以升級以獲得更高的使用率。",
   "max_mirror_nums": "空間站的神奇表單數上限為 ${specification} 個，當前已創建 ${usage} 個，升級可獲得更高用量。",
-  "max_record_num_per_dst": "當前支持的單表上限為 50000 行",
+  "max_record_num_per_dst": "當前支持的單表上限為 100000 行",
   "max_records": "記錄數上限：${count}條",
   "max_remain_record_activity_days": "空間站僅顯示 ${specification}  天內的修改歷史，升級後可查看更久的歷史數據。",
   "max_remain_timemachine_days": "空間站僅顯示 ${specification}  天內的記錄動態，升級後可查看更久的動態。",

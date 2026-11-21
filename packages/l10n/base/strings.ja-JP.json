@@ -3197,7 +3197,7 @@
   "max_kanban_views_in_space": "スペースで使用されるかんばんビューの最大数は ${specification} です。これまでのところ、${usage} が使用されていますが、アップグレードして使用量を増やすことができます。",
   "max_message_credits": "AIエージェントに用いられるAl Creditの最大数は${specification}である.${usage}はこれまで使用されており、より高い使用率を得るためにアップグレードすることができます。",
   "max_mirror_nums": "空間内で使用できるミラーの最大数は ${specification} です。これまでのところ、${usage} が使用されていますが、アップグレードして使用量を増やすことができます。",
-  "max_record_num_per_dst": "単一データテーブルの現在の制限は50000行です",
+  "max_record_num_per_dst": "単一データテーブルの現在の制限は100000行です",
   "max_records": "最大: ${count}",
   "max_remain_record_activity_days": "このスペースは、${specification} 日以内のレコード アクティビティの表示をサポートしています。アップグレードしてさらに表示します。",
   "max_remain_timemachine_days": "このスペースには ${specification} 日以内のレコード アクティビティのみが表示されます。アップグレードすると、さらに多くのレコード アクティビティが表示されます。",

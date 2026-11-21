@@ -3197,7 +3197,7 @@
   "max_kanban_views_in_space": "스페이스에서 사용할 수 있는 Kanban 보기의 최대 수는 ${specification}입니다. 지금까지 ${usage}를 사용했으며 업그레이드하여 사용량을 늘릴 수 있습니다.",
   "max_message_credits": "AI 에이전트에 사용된 최대 Al Credit의 최대 수는 ${specification}입니다.지금까지 ${usage}이(가) 사용되었으며 더 높은 사용률을 위해 업그레이드할 수 있습니다.",
   "max_mirror_nums": "공간에서 사용할 수 있는 최대 미러 수는 ${specification}입니다. 지금까지 ${usage}를 사용했으며 업그레이드하여 사용량을 늘릴 수 있습니다.",
-  "max_record_num_per_dst": "단일 데이터 테이블의 현재 한계는 50000줄입니다.",
+  "max_record_num_per_dst": "단일 데이터 테이블의 현재 한계는 100000줄입니다.",
   "max_records": "최대: ${count}",
   "max_remain_record_activity_days": "이 공간은 ${specification}일 내 기록 활동 보기를 지원합니다. 더 보려면 업그레이드하세요.",
   "max_remain_timemachine_days": "이 공간에는 ${specification}일 내의 기록 활동만 표시됩니다. 더 많은 기록 활동을 보려면 업그레이드하세요.",

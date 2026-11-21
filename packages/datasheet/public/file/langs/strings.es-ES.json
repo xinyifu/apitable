@@ -3243,7 +3243,7 @@
   "max_kanban_views_in_space": "El número máximo de vistas Kanban que se pueden usar en el espacio es ${specification}. Hasta ahora, se ha utilizado ${usage} y puede actualizar para obtener un mayor uso.",
   "max_message_credits": "El número máximo de Al Credit que se utilizará en el AI agent es ${specification}. Hasta ahora, ${usage} ha sido usado, y usted puede actualizar para obtener el uso más alto r.",
   "max_mirror_nums": "El número máximo de espejos que se utilizarán en el espacio es ${specification}. Hasta ahora, se ha utilizado ${usage} y puede actualizar para obtener un mayor uso.",
-  "max_record_num_per_dst": "El límite actual para una sola tabla de datos es de 50.000 líneas",
+  "max_record_num_per_dst": "El límite actual para una sola tabla de datos es de 100.000 líneas",
   "max_records": "Máximo: ${count}",
   "max_remain_record_activity_days": "Este espacio permite ver la actividad de registro dentro de ${specification} días, actualice para ver más",
   "max_remain_timemachine_days": "El espacio solo muestra la actividad de registro dentro de ${specification} días, actualice para ver más actividad de registro.",

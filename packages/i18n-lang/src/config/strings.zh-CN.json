@@ -3231,7 +3231,7 @@
   "max_kanban_views_in_space": "空间站的看板视图数上限为 ${specification} 个，当前已创建 ${usage} 个，升级可获得更高用量。",
   "max_message_credits": "空间站内的算力点上限为 ${specification} 点。目前为止已使用 ${usage} 点，请升级你的空间站以获得更高用量",
   "max_mirror_nums": "空间站的镜像数上限为 ${specification} 个，当前已创建 ${usage} 个，升级可获得更高用量。",
-  "max_record_num_per_dst": "当前支持的单表上限为 5w 行",
+  "max_record_num_per_dst": "当前支持的单表上限为 10 万行",
   "max_records": "记录数上限：${count}条",
   "max_remain_record_activity_days": "空间站仅显示 ${specification}  天内的修改历史，升级后可查看更久的历史数据。",
   "max_remain_timemachine_days": "空间站仅显示 ${specification}  天内的记录动态，升级后可查看更久的动态。",

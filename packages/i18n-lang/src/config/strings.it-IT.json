@@ -3243,7 +3243,7 @@
   "max_kanban_views_in_space": "Il numero massimo di viste Kanban da utilizzare nello spazio è ${specification}. Finora, ${usage} è stato utilizzato e puoi eseguire l'upgrade per ottenere un utilizzo maggiore.",
   "max_message_credits": "Il numero massimo di Al Credit da utilizzare nell'agente AI è ${specification}. Finora è stato utilizzato ${usage} ed è possibile eseguire l'aggiornamento per ottenere un utilizzo maggiore.",
   "max_mirror_nums": "Il numero massimo di mirror da utilizzare nello spazio è ${specification}. Finora, ${usage} è stato utilizzato e puoi eseguire l'upgrade per ottenere un utilizzo maggiore.",
-  "max_record_num_per_dst": "Il limite corrente per un singolo foglio dati è di 50000 righe",
+  "max_record_num_per_dst": "Il limite corrente per un singolo foglio dati è di 100000 righe",
   "max_records": "Massimo: ${count}",
   "max_remain_record_activity_days": "Questo spazio supporta la visualizzazione dell'attività dei record entro ${specification} giorni, esegui l'upgrade per visualizzarne di più",
   "max_remain_timemachine_days": "Lo spazio mostra solo l'attività dei record entro ${specification} giorni, esegui l'upgrade per visualizzare più attività dei record.",
