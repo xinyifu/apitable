@@ -12,7 +12,41 @@
 - 需要手动执行的数据修复或迁移验证命令。
 - mirror upstream 镜像的 source tag/digest 变化。
 
-## 未发布
+## selfhost-20261121-1
+
+基于官方 `v1.14.0-beta`（`c9255a752`），包括网格表头列分组和可选的单行文本主字段查重。前端新增记录的单表上限为 10 万行。Fusion API 新增和 Excel 单工作表导入的默认上限均为 5 万行。
+
+自托管匿名表单使用运行环境的验证码判断决定是否等待附件上传。All-in-One 继续向 Liquibase 分别传入表前缀和数据库引擎。官方更新在 `init-db` 中只调整版本号。
+
+`.env.ghcr-local` 的九个应用镜像统一使用 `selfhost-20261121-1`。沿用现有 Compose 初始化顺序和数据库配置。记录动态天数可选用 `RECORD_ACTIVITY_MAX_LIMIT_DAY` 覆盖，前端默认上限为 730 天。
+
+### 上游复制镜像
+
+本次发布前读取的 Docker Hub `apitable/<镜像>:latest` 的 `linux/amd64` manifest 摘要如下。
+
+| 镜像 | 源平台摘要 |
+| --- | --- |
+| `databus-server` | `sha256:462fa8bea11df94642b80a58d683aaf9995d79061588843a9d6b7ee66a421600` |
+| `imageproxy-server` | `sha256:c5c2d12fc10a2a25994041e839e05bf0a3d2bcf3b386e76935f1c17b17068395` |
+| `init-appdata` | `sha256:3c4650d83dfb90c4c0f66f4382779c4f0333964293c394f7e7f2579764164e96` |
+
+### 上一发布版本
+
+上一发布标签为 `selfhost-20260701-1`。本次更新前的仓库配置可从 `1420df695` 取回，包括 `.env.ghcr-local`、`docker-compose.yaml` 和 `docker-compose.ghcr-local.override.yaml`。以下是上一发布标签在 `ghcr.io/xinyifu/apitable` 下的镜像摘要。回退部署时沿用该环境原有的域名、密钥、卷和 MySQL 初始化参数。
+
+| 镜像 | 上一发布摘要 |
+| --- | --- |
+| `backend-server` | `sha256:7e2cd6f402c48e530f745cc100c30d6c18b2b09cb8a722e55945f4245d431c30` |
+| `room-server` | `sha256:64277409fe95cd5bcd42c26d5278fec3f58833634c0f38c6b8c2146360e95cc2` |
+| `web-server` | `sha256:968729856b1de9add814a5354f727c9c19a515b00a9b780cf6f98f2f2e4f795d` |
+| `init-db` | `sha256:40e63847001ddc4b14e75a4bc0c08d661d23e2f825f1c4981801b9b93f4aa91d` |
+| `init-selfhost-overrides` | `sha256:866aa25ab1aae72473ce968c6e8c91df26645e2cbef2c99cc83332b4eff3b07f` |
+| `openresty` | `sha256:a3713a7f0df1011da29629ecdc8aa8d868ab701b41f2d311f5a263aab1cf0e98` |
+| `databus-server` | `sha256:462fa8bea11df94642b80a58d683aaf9995d79061588843a9d6b7ee66a421600` |
+| `imageproxy-server` | `sha256:c5c2d12fc10a2a25994041e839e05bf0a3d2bcf3b386e76935f1c17b17068395` |
+| `init-appdata` | `sha256:3c4650d83dfb90c4c0f66f4382779c4f0333964293c394f7e7f2579764164e96` |
+
+## 前次发布后已纳入的配置
 
 ### 分支命名调整（2026-11-17）
 

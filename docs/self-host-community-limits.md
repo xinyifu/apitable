@@ -340,6 +340,8 @@ if (response!.data?.isAllowOverLimit) {
 
 当前自部署开发分支与发布分支统一采用以下有限值：席位 1000、文件节点 1 万、单表行数 10 万、空间总行数 1 亿。席位、文件节点和单表行数不再使用早期的 100 万配置，空间总行数则由 1000 万提高到 1 亿。
 
+从 `selfhost-20261121-1` 起，前端新增记录的判断与单表权益同为 10 万行。Fusion API 新增记录另受 `SERVER_MAX_RECORD_COUNT` 限制，Excel 导入的每张工作表另受 `MAX_ROW_COUNT` 限制，两者默认均为 5 万行。
+
 ```java
 public Seat getSeat() {
     return new Seat(1000L);
