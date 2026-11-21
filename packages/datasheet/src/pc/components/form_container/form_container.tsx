@@ -182,12 +182,17 @@ export const FormContainer: React.FC<
 
   // Shared captcha verification for attachment uploads in shared anonymous forms
   // Only initialize when: shared form + anonymous fill allowed + not logged in + has attachment fields
-  const needSharedCaptcha = !!(shareId && fillAnonymous && !isLogin && hasAttachmentField);
+  const isAnonymousAttachmentForm = !!(shareId && fillAnonymous && !isLogin && hasAttachmentField);
   
   // Use a queue of callbacks to support multiple fields waiting for verification
   const pendingVerificationCallbacksRef = useRef<Array<(_nvcData?: string) => void>>([]);
-  const { nvcData: sharedNvcData, triggerVerification: _triggerSharedVerification, CaptchaElement: SharedCaptchaElement } = useNoTraceVerification({
-    enabled: needSharedCaptcha,
+  const {
+    needVerify: needSharedCaptcha,
+    nvcData: sharedNvcData,
+    triggerVerification: _triggerSharedVerification,
+    CaptchaElement: SharedCaptchaElement,
+  } = useNoTraceVerification({
+    enabled: isAnonymousAttachmentForm,
     onSuccess: (data) => {
       // Execute all pending callbacks when verification succeeds
       pendingVerificationCallbacksRef.current.forEach((cb) => cb(data));
