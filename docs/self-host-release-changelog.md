@@ -20,6 +20,24 @@
 
 `.env.ghcr-local` 的九个应用镜像统一使用 `selfhost-20261121-1`。沿用现有 Compose 初始化顺序和数据库配置。记录动态天数可选用 `RECORD_ACTIVITY_MAX_LIMIT_DAY` 覆盖，前端默认上限为 730 天。
 
+### 本次发布镜像
+
+`main` 发布提交为 `057715ceda9e9df639c50eacb032114f199e2aa5`。已在 GHCR 核对九个镜像的 `linux/amd64` 清单，六个自建镜像的版本和提交标签均与本次发布一致。三份复制镜像的平台摘要见下节。[GitHub Actions 发布记录](https://github.com/xinyifu/apitable/actions/runs/44893573081)
+
+| 镜像 | GHCR 标签摘要 |
+| --- | --- |
+| `backend-server` | `sha256:2ae82701c5a793e66fcaefbbe4cf64cdc376de002a040371360bc0809111dc97` |
+| `room-server` | `sha256:fce5b23f08474e3b1e29c93bf2920ac56b4b9e1f40876f05a235e01feec922b3` |
+| `web-server` | `sha256:3081790622700e94a65a5431dd8a2650ffb5f37a92e589456b2cc00bf4a127fe` |
+| `init-db` | `sha256:e8a70a601488195219602feae6461cd207fd6fad28bc239d5050988628a5763a` |
+| `init-selfhost-overrides` | `sha256:84edc064cd6f07ca8b8e023163bf4c89e121486864fc5e477e767f3edf80744c` |
+| `openresty` | `sha256:209b5acf89ca1fd9997a6651d96308f74d5546d0b747ca347ed5dffa4cd8872a` |
+| `databus-server` | `sha256:462fa8bea11df94642b80a58d683aaf9995d79061588843a9d6b7ee66a421600` |
+| `imageproxy-server` | `sha256:c5c2d12fc10a2a25994041e839e05bf0a3d2bcf3b386e76935f1c17b17068395` |
+| `init-appdata` | `sha256:3c4650d83dfb90c4c0f66f4382779c4f0333964293c394f7e7f2579764164e96` |
+
+`init-db` 首次构建时，Liquibase 下载 MySQL 驱动未通过校验。本次恢复了上一版缓存，并核对了基础镜像层和缓存中的驱动层与上一发布镜像一致。重试命中缓存，发布成功。后续从空缓存构建仍依赖该驱动下载校验通过。
+
 ### 上游复制镜像
 
 本次发布前读取的 Docker Hub `apitable/<镜像>:latest` 的 `linux/amd64` manifest 摘要如下。
